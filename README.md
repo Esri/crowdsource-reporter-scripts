@@ -8,11 +8,11 @@ Scripts that can be used to extend the functionality of the Crowdsource Reporter
 [ArcGIS for Local Government maps and apps]: http://solutions.arcgis.com/local-government
 [Local Government GitHub repositories]: http://esri.github.io/#Local-Government
 [guidelines for contributing]: https://github.com/esri/contributing
-[LICENSE]: https://github.com/ArcGIS/crowdsource-reporter-scripts/blob/master/LICENSE
+[LICENSE]: https://github.com/ArcGIS/crowdsource-reporter-scripts/blob/master/LICENSE.txt
 
 ## Features
 
-* A script to filter features based on lists of explicit and sensitive words. The script updates a flag field when a word on these lists is detected so that the feature no longer meets the requirements of a filter on a lyaer in a web map. The script also compares words against a list of good words to avoid accidental filtering.
+* A script to filter features based on lists of explicit and sensitive words. The script updates a flag field when a word on these lists is detected so that the feature no longer meets the requirements of a filter on a layer in a web map. The script also compares words against a list of good words to avoid accidental filtering.
 * A script to generate identifiers for features based on a defined sequence and that increment based on a defined interval.
 
 ## Requirements
