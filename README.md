@@ -8,7 +8,7 @@ Scripts that can be used to extend the functionality of the Crowdsource Reporter
 [ArcGIS for Local Government maps and apps]: http://solutions.arcgis.com/local-government
 [Local Government GitHub repositories]: http://esri.github.io/#Local-Government
 [guidelines for contributing]: https://github.com/esri/contributing
-[LICENSE]: LICENSE.txt
+[LICENSE]: https://github.com/ArcGIS/crowdsource-reporter-scripts/blob/master/LICENSE
 
 ## Features
 
