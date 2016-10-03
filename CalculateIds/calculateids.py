@@ -27,8 +27,8 @@ server_type = "AGOL" # "PORTAL", "SERVER"
 
 # Credentials for AGOL/Portal
 orgURL = 'http://localgovtest.maps.arcgis.com'
-username = 'allison_demo'
-password = 'lgdemo123'
+username = ''
+password = ''
 
 # "ConcernID-{:04d}" to pad sequence value with 4 zeros
 
