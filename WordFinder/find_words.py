@@ -19,8 +19,7 @@
 
 #-------------------------------------------------------------------------------
 
-""" Minimally tested, totally unsupported, alpha script! Proof of concept for testing only"""
-
+import re
 import string
 import arcpy
 import wordlist
@@ -39,19 +38,17 @@ password = ''
 
 # Services to scan for words.
 #   - url: the url to the REST endpoint of the service
+#   - status field: name of the field containing a status value that indicates
+#           the report has not yet been reviewed. Define this value below as status_value
 #   - flag: Name of field that contains the visible and hiddlen values specified below
 #   - reason: field to populate with the reason the feature was updated
 #   - fields: List of names of fields to search for the listed words
 
-services = [{'url': '',
-             'flag':'',
-             'reason': '',
-             'fields': ['','']},
-
-             {'url': '',
-             'flag':'',
-             'reason': '',
-             'fields': ['','']}]
+services = [{'url': 'http://services.arcgis.com/zawkzYpZ6iH7pevp/arcgis/rest/services/CitizenProblemReportsData/FeatureServer/0',
+             'status field': 'STATUS',
+             'flag field':'PUBLICVIEW',
+             'reason': 'RESOLUTION',
+             'fields': ['NAME','DETAILS']}]
 
 # Dual values for field that will be updated. Only fields with the visible
 #   value will be processed. Features with listed words will be updated to have
@@ -60,97 +57,170 @@ services = [{'url': '',
 visible_value = 'YES'
 hidden_value = 'NO'
 
+# Status value indicating the report has not yet been reviewed
+status_value = 'SUBMITTED'
+
+# Filter words containing the following character substitutions
+subs = {'A': '@$A',
+        'S': '$5ZzS',
+        'O': '0O',
+        'I': '!1I',
+        'T': '+7T',
+        'C': 'CK',
+        'K': 'CK',
+        'E': '3E'}
+
+### Maximum size at which polygons will be drawn on map
+##max_area = 30000
+
 # --------------------------------------------------------------------------- #
+def get_shh():
+    """Connect to an AGOL organization or Portal"""
 
-# Get lists of words from companion file (uppercase formatting)
-badwords = set([word.upper() for word in wordlist.bad_words])
-sensitivewords = set([word.upper() for word in wordlist.sensitive_words])
-goodwords = [word.upper() for word in wordlist.good_words]
+    securityinfo = {}
+    securityinfo['security_type'] = 'Portal'#LDAP, NTLM, OAuth, Portal, PKI, ArcGIS
+    securityinfo['username'] = username
+    securityinfo['password'] = password
+    securityinfo['org_url'] = orgURL
+    securityinfo['proxy_url'] = None
+    securityinfo['proxy_port'] = None
+    securityinfo['referer_url'] = None
+    securityinfo['token_url'] = None
+    securityinfo['certificatefile'] = None
+    securityinfo['keyfile'] = None
+    securityinfo['client_id'] = None
+    securityinfo['secret_id'] = None
 
-# Connect to org
-securityinfo = {}
-securityinfo['security_type'] = 'Portal'#LDAP, NTLM, OAuth, Portal, PKI, ArcGIS
-securityinfo['username'] = username
-securityinfo['password'] = password
-securityinfo['org_url'] = orgURL
-securityinfo['proxy_url'] = None
-securityinfo['proxy_port'] = None
-securityinfo['referer_url'] = None
-securityinfo['token_url'] = None
-securityinfo['certificatefile'] = None
-securityinfo['keyfile'] = None
-securityinfo['client_id'] = None
-securityinfo['secret_id'] = None
+    shh = securityhandlerhelper.securityhandlerhelper(securityinfo=securityinfo)
+    if shh.valid == False:
+        return shh.message
+    else:
+        return shh
 
-shh = securityhandlerhelper.securityhandlerhelper(securityinfo=securityinfo)
-if shh.valid == False:
-    print shh.message
 
-# Process each of the services listed above
-for service in services:
+def build_expression(words, exact_match=False):
+    """Build an all-caps regular expression for matching either exact or partial strings"""
 
-    fl= FeatureLayer(
-    url=service['url'],
-    securityHandler=shh.securityhandler,
-    proxy_port=None,
-    proxy_url=None,
-    initialize=True)
+    re_string = ''
 
-    # Build SQL query to find visible features
-    sql = """{} = '{}'""".format(service['flag'], visible_value)
+    for word in words:
+        new_word = ''
+        for char in word.upper():
 
-    # Fields that will be returned by query
-    out_fields = ['objectid', service['flag'], service['reason']] + service['fields']
+            if char in subs.keys():
+                new_word += "[" + subs[char] + "]"
 
-    # Get publicly visible features
-    resFeats = fl.query(where=sql, out_fields=",".join(out_fields))
+            else:
+                new_word += "[" + char + "]"
 
-    # For each public feature
-    for feat in resFeats:
-        explicit_content = False
-        sensitive_content = False
+        # Filter using only exact matches of the string
+        if exact_match:
+            re_string += '\\b{}\\b|'.format(new_word) #\b = word boundary
 
-        # Check each field listed for explicit or sensitive content
-        for field in service['fields']:
-            text = feat.get_value(field)
-            text = text.upper()
+        # Filter using all occurances of the letter combinations specified
+        else:
+            re_string += '.*{}.*|'.format(new_word) # .* = anything
 
-            # Remove punctionation from the field text
-            text.translate({ord(c): None for c in string.punctuation})
+    return re_string[:-1]
 
-            # Build a case-insensitive list of all words used that aren't already in the 'goodwords' list
-            text = set(filter(lambda word: word not in goodwords, text.split(" ")))
 
-            # Find words from the text that are on the bad words list
-            if text & badwords:
-                explicit_content = True
-                break
+def main():
+    """Scan fields in services looking for explicit/sensitive words (as defined).
+    Features are updated if content is found so that a map filter can be used to
+    hide this content"""
+    # Build regular expression of explicit words (uppercase formatting)
+    badwords = list(set([word.upper() for word in wordlist.bad_words]))
+    badwordsexact = list(set([word.upper() for word in wordlist.bad_words_exact]))
 
-            # Find words from the text that are on the sensitive words list
-            if text & sensitivewords:
-                sensitive_content = True
-                break
+    explicit_filter = build_expression(badwords) + "|" + build_expression(badwordsexact, True)
 
-        if sensitive_content or explicit_content:
-            reason = ''
+    # Build regular expression of sensitive words (uppercase formatting)
+    sensitivewords = list(set([word.upper() for word in wordlist.sensitive_words]))
+    sensitive_filter = build_expression(sensitivewords)
 
-            # Get current reason, if any
-            cur_reason = feat.get_value(service['reason'])
-            if cur_reason:
-                reason += "{} ".format(cur_reason)
+##    goodwords = [word.upper() for word in wordlist.good_words]
 
-            if explicit_content:
-                reason += "Explicit content found. "
+    shh = get_shh()
 
-            elif sensitive_content:
-                reason += "Sensitive content found. "
+##    if 'error' in shh:
+##        raise exception
 
-            # Update reason
-            feat.set_value(service['reason'], reason)
+    # Process each of the services listed above
+    for service in services:
 
-            # Mark feature with hidden value
-            feat.set_value(service['flag'], hidden_value)
+        fl= FeatureLayer(
+        url=service['url'],
+        securityHandler=shh.securityhandler,
+        proxy_port=None,
+        proxy_url=None,
+        initialize=True)
 
-    # Commit updates and print status
-    print fl.updateFeature(features=resFeats)
+        # Build SQL query to find visible features
+        sql = """{} = '{}' AND {} = '{}'""".format(service['flag field'],
+                                                   visible_value,
+                                                   service['status field'],
+                                                   status_value)
 
+        # Fields that will be returned by query
+        out_fields = ['objectid', service['flag field'], service['reason']] + service['fields']
+
+        # Get publicly visible features of the defined status
+        resFeats = fl.query(where=sql, out_fields=",".join(out_fields))
+
+        # For each public feature
+        for feat in resFeats:
+            explicit_content = False
+            sensitive_content = False
+
+            # Check each field listed for explicit or sensitive content
+            for field in service['fields']:
+                text = feat.get_value(field)
+                text = text.upper()
+
+##                # Build a case-insensitive list of all words used that aren't already in the 'goodwords' list
+##                cleantext = set(filter(lambda word: word not in goodwords, cleantext.split(" ")))
+
+                # Find words from the text that are on the bad words list
+                if re.search(explicit_filter, text):
+                    explicit_content = True
+                    break
+
+                # Find words from the text that are on the bad words list
+                if re.search(sensitive_filter, text):
+                    explicit_content = True
+                    break
+
+##                # Polygon Area
+##                if feat.geometryType == 'polygon':
+##                    if feat.geometry.getArea(units="ACRES") >= max_area:
+##                        too_large = True
+##                        break
+
+            if sensitive_content or explicit_content:
+                reason = ''
+
+                # Get current reason, if any, and append new reason
+                cur_reason = feat.get_value(service['reason'])
+                if cur_reason:
+                    reason += "{} ".format(cur_reason)
+
+                if explicit_content:
+                    reason += "Explicit content found. "
+
+                elif sensitive_content:
+                    reason += "Sensitive content found. "
+
+##                elif too_large:
+##                    reason = "POLYSIZE"
+
+                # Update reason
+                feat.set_value(service['reason'], reason)
+
+                # Mark feature with hidden value
+                feat.set_value(service['flag field'], hidden_value)
+
+        # Commit updates and print status
+        print fl.updateFeature(features=resFeats)
+
+if __name__ == '__main__':
+    main()

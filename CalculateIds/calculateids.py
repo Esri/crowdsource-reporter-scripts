@@ -38,6 +38,7 @@ data = [{'path':'http://services.arcgis.com/zawkzYpZ6iH7pevp/arcgis/rest/service
          'sequence': 'ConcernID-{}'}]
 
 # ID file
+
 id_file_path = r'C:\Users\alli6394\Documents\GitHub\crowdsource-reporter-scripts\CalculateIds\ids.csv'
 
 def read_values(f):
