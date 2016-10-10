@@ -3,6 +3,8 @@
 # Purpose:     Lists of words to use to screen public comments.
 #              Words are not case sensitive.
 
+# Python versions 2.7, 3.4
+
 # Copyright 2016 Esri
 
 #   Licensed under the Apache License, Version 2.0 (the "License");

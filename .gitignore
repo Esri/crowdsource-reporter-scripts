@@ -1,0 +1,13 @@
+
+#############
+## Python
+#############
+
+*.py[co]
+*.pyc
+
+
+# Tools, notes, outputs
+
+*.log
+
