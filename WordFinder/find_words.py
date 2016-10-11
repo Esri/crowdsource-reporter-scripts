@@ -47,12 +47,15 @@ def get_shh():
     securityinfo['client_id'] = None
     securityinfo['secret_id'] = None
 
-    shh = securityhandlerhelper.securityhandlerhelper(securityinfo=securityinfo)
+    try:
+        shh = securityhandlerhelper.securityhandlerhelper(securityinfo=securityinfo)
 
-    if not shh.valid:
-        return shh.message
-    else:
-        return shh
+        if not shh.valid:
+            return shh.message
+        else:
+            return shh
+    except:
+        return 'error'
 
 
 def build_expression(words, exact_match=False):
@@ -110,14 +113,12 @@ def main():
             sensitivewords = list(set([str(word).upper() for word in wordlist.sensitive_words]))
             sensitive_filter = build_expression(sensitivewords)
 
+
             shh = get_shh()
 
-            try:
-                if 'error' in shh:
-                    raise Exception(m1.format(orgURL))
+            if isinstance(shh, str) or isinstance(shh, dict):
+                raise Exception(m1.format(wordlist.orgURL))
 
-            except TypeError:
-                pass
 
             # Process each of the services listed above
             for service in wordlist.services:
@@ -154,13 +155,13 @@ def main():
                         text = feat.get_value(field)
                         text = text.upper()
 
-                        # Find words from the text that are on the bad words list
+                        # Find words that are on the bad words list
                         if explicit_filter:
                             if re.search(explicit_filter, text):
                                 explicit_content = True
                                 break
 
-                        # Find words from the text that are on the bad words list
+                        # Find words that are on the sensitive words list
                         if sensitive_filter:
                             if re.search(sensitive_filter, text):
                                 sensitive_content = True
