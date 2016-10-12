@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Name:        calculateids.py
 # Purpose:     generates identifiers for features
 
@@ -16,30 +16,45 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-#-------------------------------------------------------------------------------
-
+# ------------------------------------------------------------------------------
+from os import path
+from datetime import datetime as dt
 import arcpy
 from arcresthelper import securityhandlerhelper
 from arcrest.agol import FeatureLayer
 
 # Data Store
-server_type = "AGOL" # "PORTAL", "SERVER"
+server_type = "AGOL"  # "PORTAL", "SERVER"
 
 # Credentials for AGOL/Portal
 orgURL = 'http://localgovtest.maps.arcgis.com'
-username = ''
-password = ''
+username = 'allison_demo'
+password = 'lgdemo123'
 
-# "ConcernID-{:04d}" to pad sequence value with 4 zeros
+# Services/feature classes to update
+#   path: REST enpoint of AGOL/Portal service, or feature class path
+#   field: Name of field to contain identifier
+#   type: the name of the id value to use. This should correspond to the first value of a line in the ids.csv file
+#   sequence: the identifier sequence, with the section to increment marked
+#       with {}. Python string formatting applies within the {}. For example,
+#       use {:04d}'to pad the incrementing value with 4 zeros.
+data = [{'path': '',
+         'field': '',
+         'type': '',
+         'sequence': ''},
 
-data = [{'path':'http://services.arcgis.com/zawkzYpZ6iH7pevp/arcgis/rest/services/CitizenProblemReportsData/FeatureServer/0',
-         'field':'WORKORDERID',
-         'type':'CAT1',
-         'sequence': 'ConcernID-{}'}]
+         {'path': '',
+         'field': '',
+         'type': '',
+         'sequence': ''}]
 
-# ID file
-
+# Path to file use to track the identifiers
+#   one identifier per line with the following comma separated values:
+#       the name of the id value,
+#       the interval to use to increment the values,
+#       the id value that will be used for the next feature
 id_file_path = r'C:\Users\alli6394\Documents\GitHub\crowdsource-reporter-scripts\CalculateIds\ids.csv'
+
 
 def read_values(f):
     """Read in the settings from the csv file and
@@ -62,6 +77,7 @@ def find_settings(cat, lst):
 
             try:
                 return [val1, int(val2), int(val3)]
+
             except ValueError:
                 found = False
 
@@ -75,7 +91,7 @@ def update_agol(url, fld, sequence_value, interval, seq_format='{}'):
 
     # Connect to org
     securityinfo = {}
-    securityinfo['security_type'] = 'Portal'#LDAP, NTLM, OAuth, Portal, PKI, ArcGIS
+    securityinfo['security_type'] = 'Portal'  # LDAP, NTLM, OAuth, Portal, PKI, ArcGIS
     securityinfo['username'] = username
     securityinfo['password'] = password
     securityinfo['org_url'] = orgURL
@@ -89,15 +105,15 @@ def update_agol(url, fld, sequence_value, interval, seq_format='{}'):
     securityinfo['secret_id'] = None
 
     shh = securityhandlerhelper.securityhandlerhelper(securityinfo=securityinfo)
-    if shh.valid == False:
+
+    if not shh.valid:
         print shh.message
 
-    fl= FeatureLayer(
-    url=url,
-    securityHandler=shh.securityhandler,
-    proxy_port=None,
-    proxy_url=None,
-    initialize=True)
+    fl = FeatureLayer(url=url,
+                      securityHandler=shh.securityhandler,
+                      proxy_port=None,
+                      proxy_url=None,
+                      initialize=True)
 
     # Build SQL query to find features missing id
     sql = """{} is null""".format(fld)
@@ -129,7 +145,7 @@ def update_fc(data_path, fld, sequence_value, interval, seq_format='{}'):
     # Get workspace of fc
     dirname = os.path.dirname(arcpy.Describe(data_path).catalogPath)
     desc = arcpy.Describe(dirname)
-    if hasattr(desc, "datasetType") and desc.datasetType=='FeatureDataset':
+    if hasattr(desc, "datasetType") and desc.datasetType == 'FeatureDataset':
         dirname = os.path.dirname(dirname)
 
     # Start edit session
@@ -138,13 +154,13 @@ def update_fc(data_path, fld, sequence_value, interval, seq_format='{}'):
     edit.startOperation()
 
     # find and update all features that need ids
-    with arcpy.da.UpdateCursor(fc, fld, where_clause="""{} is null""".format(fld)) as fcrows:
+    sql = """{} is null""".format(fld)
+    with arcpy.da.UpdateCursor(fc, fld, where_clause=sql) as fcrows:
 
         for row in fcrows:
 
             # Calculate a new id value from a string and the current id value
             row[0] = seq_format.format(sequence_value)
-            #row[0] = "ConcernID-{:04d}".format(sequence_value) #alt: pad sequence value with 4 zeros
 
             fcrows.updateRow(row)
 
@@ -153,45 +169,63 @@ def update_fc(data_path, fld, sequence_value, interval, seq_format='{}'):
 
     return sequence_value
 
+
 def main():
 
-    # Get all id settings
-    id_settings = read_values(id_file_path)
+    id_log = path.join(sys.path[0], 'id_log.log')
+    with open(id_log, 'a') as log:
+        log.write('\n{}\n'.format(dt.now()))
 
-    for d in data:
-        data_path = d['path']
-        id_field = d['field']
-        inc_type = d['type']
-        seq_format = d['sequence']
+        try:
+            # Get all id settings
+            id_settings = read_values(id_file_path)
 
-        # Get settings for current category
-        id_type, interval, sequence_value = find_settings(inc_type, id_settings)
+            for d in data:
+                data_path = d['path']
+                id_field = d['field']
+                inc_type = d['type']
+                seq_format = d['sequence']
 
-        if id_type == 'error':
-            print 'error'
+                # Get settings for current category
+                id_type, interval, sequence_value = find_settings(inc_type,
+                                                                  id_settings)
 
-        # Assign ids to features
-        if server_type == 'AGOL' or server_type == 'PORTAL':
-            new_sequence_value = update_agol(data_path, id_field, sequence_value, interval, seq_format)
+                if id_type == 'error':
+                    raise Exception('Specified ID sequence not found')
 
-        elif server_type == 'SERVER':
-            new_sequence_value = update_fc(data_path, id_field, sequence_value, interval, seq_format)
+                # Assign ids to features
+                if server_type == 'AGOL' or server_type == 'PORTAL':
+                    new_sequence_value = update_agol(data_path,
+                                                     id_field,
+                                                     sequence_value,
+                                                     interval,
+                                                     seq_format)
 
-        # Update the settings with the latest sequence values
-        if sequence_value <> new_sequence_value:
+                elif server_type == 'SERVER':
+                    new_sequence_value = update_fc(data_path,
+                                                   id_field,
+                                                   sequence_value,
+                                                   interval,
+                                                   seq_format)
 
+                # Update the settings with the latest sequence values
+                if sequence_value != new_sequence_value:
+                    for val in id_settings:
+                        if inc_type == val[0]:
+                            val[2] = new_sequence_value
+                            break
+
+            # Save updated settings to file
+            new_settings = ''
             for val in id_settings:
-                if inc_type == val[0]:
-                    val[2] = new_sequence_value
-                    break
+                new_settings += "{}\n".format(','.join(val))
 
-    # Save updated settings to file
-    new_settings = ''
-    for val in id_settings:
-        new_settings += "{},{},{}\n".format(id_type, interval, sequence_value)
+            with open(id_file_path, 'w') as f:
+                f.writelines(new_settings)
 
-    with open(id_file_path, 'w') as f:
-        f.writelines(new_settings)
+        except Exception as ex:
+            print(ex)
+            log.write('{}/n'.format(ex))
 
 if __name__ == '__main__':
     main()

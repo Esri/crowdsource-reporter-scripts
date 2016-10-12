@@ -1,3 +1,4 @@
-CAT1,1,1
-CAT1,1,1
-CAT1,1,1
+id name, interval, next value
+CAT1, 1, 1
+CAT2, 2, 10
+CAT3, 10, 20
