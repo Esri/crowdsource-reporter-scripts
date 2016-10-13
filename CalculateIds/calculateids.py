@@ -27,9 +27,9 @@ from arcrest.agol import FeatureLayer
 server_type = "AGOL"  # "PORTAL", "SERVER"
 
 # Credentials for AGOL/Portal
-orgURL = 'http://localgovtest.maps.arcgis.com'
-username = 'allison_demo'
-password = 'lgdemo123'
+orgURL = ''
+username = ''
+password = ''
 
 # Services/feature classes to update
 #   path: REST enpoint of AGOL/Portal service, or feature class path
@@ -53,7 +53,7 @@ data = [{'path': '',
 #       the name of the id value,
 #       the interval to use to increment the values,
 #       the id value that will be used for the next feature
-id_file_path = r'C:\Users\alli6394\Documents\GitHub\crowdsource-reporter-scripts\CalculateIds\ids.csv'
+id_file_path = r'C:\crowdsource-reporter-scripts\CalculateIds\ids.csv'
 
 
 def read_values(f):
@@ -107,7 +107,7 @@ def update_agol(url, fld, sequence_value, interval, seq_format='{}'):
     shh = securityhandlerhelper.securityhandlerhelper(securityinfo=securityinfo)
 
     if not shh.valid:
-        print shh.message
+        return 'error'
 
     fl = FeatureLayer(url=url,
                       securityHandler=shh.securityhandler,
@@ -200,6 +200,8 @@ def main():
                                                      sequence_value,
                                                      interval,
                                                      seq_format)
+                    if new_sequence_value == 'error':
+                        raise Exception('Could not connect to {}. Please verify paths and credentials.'.format(data_path))
 
                 elif server_type == 'SERVER':
                     new_sequence_value = update_fc(data_path,
@@ -217,15 +219,15 @@ def main():
 
             # Save updated settings to file
             new_settings = ''
-            for val in id_settings:
-                new_settings += "{}\n".format(','.join(val))
+            for vals in id_settings:
+                new_settings += "{}\n".format(','.join([str(v) for v in vals]))
 
             with open(id_file_path, 'w') as f:
                 f.writelines(new_settings)
 
         except Exception as ex:
             print(ex)
-            log.write('{}/n'.format(ex))
+            log.write('{}\n'.format(ex))
 
 if __name__ == '__main__':
     main()
