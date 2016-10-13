@@ -17,14 +17,19 @@
 #   limitations under the License.
 
 # ------------------------------------------------------------------------------
-from os import path
+from os import path, sys
 from datetime import datetime as dt
-import arcpy
-from arcresthelper import securityhandlerhelper
-from arcrest.agol import FeatureLayer
 
 # Data Store
 server_type = "AGOL"  # "PORTAL", "SERVER"
+
+if server_type in ['AGOL', 'Portal']:
+
+    from arcresthelper import securityhandlerhelper
+    from arcrest.agol import FeatureLayer
+
+else:
+    import arcpy
 
 # Credentials for AGOL/Portal
 orgURL = ''
@@ -48,12 +53,12 @@ data = [{'path': '',
          'type': '',
          'sequence': ''}]
 
-# Path to file use to track the identifiers
+# Path to file use to track the identifiers. First line is headers
 #   one identifier per line with the following comma separated values:
 #       the name of the id value,
 #       the interval to use to increment the values,
 #       the id value that will be used for the next feature
-id_file_path = r'C:\crowdsource-reporter-scripts\CalculateIds\ids.csv'
+id_file_path = path.join(path.dirname(sys.argv[0]), 'ids.csv')
 
 
 def read_values(f):
@@ -61,28 +66,18 @@ def read_values(f):
     return the same in list format"""
 
     with open(f, 'r') as f_open:
+        values = {}
         f_content = f_open.read()
         f_lines = f_content.split('\n')
-        f_values = [val.split(',') for val in f_lines if val]
-
-    return f_values
-
-
-def find_settings(cat, lst):
-    """Return the setting specific to the current iteration"""
-    found = False
-    for val1, val2, val3 in lst:
-        if val1 == cat:
-            found = True
-
-            try:
-                return [val1, int(val2), int(val3)]
-
-            except ValueError:
-                found = False
-
-    if not found:
-        return ['error', '', '']
+        for category in f_lines[1:]:
+            if category:
+                cat, intvl, num = category.split(',')
+                if cat:
+                    try:
+                        values[cat] = [int(intvl), int(num)]
+                    except TypeError, ValueError:
+                        return 'Could not find a category name, interval, and sequence value in {}.'.format(category)
+    return f_lines[0], values
 
 
 def update_agol(url, fld, sequence_value, interval, seq_format='{}'):
@@ -107,7 +102,7 @@ def update_agol(url, fld, sequence_value, interval, seq_format='{}'):
     shh = securityhandlerhelper.securityhandlerhelper(securityinfo=securityinfo)
 
     if not shh.valid:
-        return 'error'
+        return 'Could not connect to {}. Please verify paths and credentials.'.format(url)
 
     fl = FeatureLayer(url=url,
                       securityHandler=shh.securityhandler,
@@ -178,7 +173,10 @@ def main():
 
         try:
             # Get all id settings
-            id_settings = read_values(id_file_path)
+            header, id_settings = read_values(id_file_path)
+
+            if not isinstance(id_settings, dict):
+                raise Exception(id_settings)
 
             for d in data:
                 data_path = d['path']
@@ -187,10 +185,10 @@ def main():
                 seq_format = d['sequence']
 
                 # Get settings for current category
-                id_type, interval, sequence_value = find_settings(inc_type,
-                                                                  id_settings)
+                try:
+                    interval, sequence_value = id_settings[inc_type]
 
-                if id_type == 'error':
+                except KeyError:
                     raise Exception('Specified ID sequence not found')
 
                 # Assign ids to features
@@ -200,8 +198,6 @@ def main():
                                                      sequence_value,
                                                      interval,
                                                      seq_format)
-                    if new_sequence_value == 'error':
-                        raise Exception('Could not connect to {}. Please verify paths and credentials.'.format(data_path))
 
                 elif server_type == 'SERVER':
                     new_sequence_value = update_fc(data_path,
@@ -212,15 +208,20 @@ def main():
 
                 # Update the settings with the latest sequence values
                 if sequence_value != new_sequence_value:
-                    for val in id_settings:
-                        if inc_type == val[0]:
-                            val[2] = new_sequence_value
-                            break
+
+                    # Look for error messages
+                    if not isinstance(new_sequence_value, (int, float)):
+                        raise Exception(new_sequence_value)
+
+                    # update stored sequence value
+                    id_settings[inc_type][1] = new_sequence_value
 
             # Save updated settings to file
-            new_settings = ''
+            new_settings = header
+
             for vals in id_settings:
-                new_settings += "{}\n".format(','.join([str(v) for v in vals]))
+                id_settings[vals].insert(0, vals)
+                new_settings += "\n{}".format(','.join([str(v) for v in id_settings[vals]]))
 
             with open(id_file_path, 'w') as f:
                 f.writelines(new_settings)
