@@ -133,11 +133,15 @@ def main():
                     raise Exception(m1.format(service['url']))
 
                 # Build SQL query to find visible features
-                sql = """{} = '{}' AND {} = '{}'""".format(service['flag field'],
+                if service['status field']:
+                    sql = """{} = '{}' AND {} = '{}'""".format(service['flag field'],
                                                            wordlist.visible_value,
                                                            service['status field'],
                                                            wordlist.status_value)
 
+                else:
+                    sql = """{} = '{}'""".format(service['flag field'],
+                                                           wordlist.visible_value)
                 # Fields that will be returned by query
                 out_fields = ['objectid', service['flag field'],
                               service['reason field']] + service['fields to scan']
