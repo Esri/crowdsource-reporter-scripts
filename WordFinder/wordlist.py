@@ -30,7 +30,7 @@ password = ''
 
 # Services to scan for words.
 #   - url: the url to the REST endpoint of the service
-#   - status field: name of the field containing a status value that indicates
+#   - status field: OPTIONAL name of the field containing a status value that indicates
 #           the report has not yet been reviewed. Define this value below as status_value
 #   - flag: Name of field that contains the visible and hiddlen values specified below
 #   - reason: field to populate with the reason the feature was updated

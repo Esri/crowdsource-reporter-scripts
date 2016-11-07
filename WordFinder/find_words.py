@@ -143,8 +143,10 @@ def main():
                     sql = """{} = '{}'""".format(service['flag field'],
                                                            wordlist.visible_value)
                 # Fields that will be returned by query
-                out_fields = ['objectid', service['flag field'],
-                              service['reason field']] + service['fields to scan']
+                out_fields = ['objectid', service['flag field']] + service['fields to scan']
+
+                if service['reason field']:
+                    out_fields.append(service['reason field'])
 
                 # Get publicly visible features of the defined status
                 resFeats = fl.query(where=sql, out_fields=",".join(out_fields))
@@ -172,21 +174,22 @@ def main():
                                 break
 
                     if sensitive_content or explicit_content:
-                        reason = ''
+                        if service['reason field']:
+                            reason = ''
 
-                        # Get current reason, if any, and append new reason
-                        cur_reason = feat.get_value(service['reason field'])
-                        if cur_reason:
-                            reason += "{} ".format(cur_reason)
+                            # Get current reason, if any, and append new reason
+                            cur_reason = feat.get_value(service['reason field'])
+                            if cur_reason:
+                                reason += "{} ".format(cur_reason)
 
-                        if explicit_content:
-                            reason += m2
+                            if explicit_content:
+                                reason += m2
 
-                        elif sensitive_content:
-                            reason += m3
+                            elif sensitive_content:
+                                reason += m3
 
-                        # Update reason
-                        feat.set_value(service['reason field'], reason)
+                            # Update reason
+                            feat.set_value(service['reason field'], reason)
 
                         # Mark feature with hidden value
                         feat.set_value(service['flag field'], wordlist.hidden_value)

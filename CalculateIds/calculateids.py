@@ -23,6 +23,29 @@ from datetime import datetime as dt
 # Data Store
 server_type = "AGOL"  # "PORTAL", "SERVER"
 
+# Credentials for AGOL/Portal
+orgURL = ''
+username = ''
+password = ''
+
+# Services/feature classes to update
+#   data path: REST endpoint of AGOL/Portal service layer, or feature class path
+#   field name: Name of field to contain identifier
+#   sequence name: the name of the sequence to use. This should correspond to
+#       the first value of a line in the ids.csv file
+#   pattern: the identifier sequence, with the section to increment marked
+#       with {}. Python string formatting applies within the {}. For example,
+#       use {:04d}'to pad the incrementing value with 4 zeros.
+data = [{'data path': '',
+         'field name': '',
+         'sequence name': '',
+         'pattern': ''},
+
+         {'data path': '',
+         'field name': '',
+         'sequence name': '',
+         'pattern': ''}]
+
 if server_type in ['AGOL', 'Portal']:
 
     from arcresthelper import securityhandlerhelper
@@ -30,28 +53,6 @@ if server_type in ['AGOL', 'Portal']:
 
 else:
     import arcpy
-
-# Credentials for AGOL/Portal
-orgURL = ''
-username = ''
-password = ''
-
-# Services/feature classes to update
-#   path: REST enpoint of AGOL/Portal service, or feature class path
-#   field: Name of field to contain identifier
-#   type: the name of the id value to use. This should correspond to the first value of a line in the ids.csv file
-#   sequence: the identifier sequence, with the section to increment marked
-#       with {}. Python string formatting applies within the {}. For example,
-#       use {:04d}'to pad the incrementing value with 4 zeros.
-data = [{'path': '',
-         'field': '',
-         'type': '',
-         'sequence': ''},
-
-         {'path': '',
-         'field': '',
-         'type': '',
-         'sequence': ''}]
 
 # Path to file use to track the identifiers. First line is headers
 #   one identifier per line with the following comma separated values:
@@ -179,17 +180,17 @@ def main():
                 raise Exception(id_settings)
 
             for d in data:
-                data_path = d['path']
-                id_field = d['field']
-                inc_type = d['type']
-                seq_format = d['sequence']
+                data_path = d['data path']
+                id_field = d['field name']
+                inc_type = d['sequence name']
+                seq_format = d['pattern']
 
                 # Get settings for current category
                 try:
                     interval, sequence_value = id_settings[inc_type]
 
                 except KeyError:
-                    raise Exception('Specified ID sequence not found')
+                    raise Exception('Specified sequence name not found')
 
                 # Assign ids to features
                 if server_type == 'AGOL' or server_type == 'PORTAL':
