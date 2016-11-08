@@ -29,7 +29,8 @@ username = ''
 password = ''
 
 # Services/feature classes to update
-#   data path: REST endpoint of AGOL/Portal service layer, or feature class path
+#   data path: REST endpoint of AGOL/Portal service layer (including index
+#       number), or feature class path. Add r to the front of feature class path.
 #   field name: Name of field to contain identifier
 #   sequence name: the name of the sequence to use. This should correspond to
 #       the first value of a line in the ids.csv file
@@ -129,7 +130,11 @@ def update_agol(url, fld, sequence_value, interval, seq_format='{}'):
         # Increment sequence value
         sequence_value += interval
 
-    print(fl.updateFeature(features=resFeats))
+    update_results = fl.updateFeature(features=resFeats)
+
+    for res in update_results['updateResults']:
+        if res['success'] == False:
+            return 'error {}: {}'.format(res['error']['code'], res['error']['description'])
 
     return sequence_value
 
@@ -139,10 +144,10 @@ def update_fc(data_path, fld, sequence_value, interval, seq_format='{}'):
     Return next valid sequence value"""
 
     # Get workspace of fc
-    dirname = os.path.dirname(arcpy.Describe(data_path).catalogPath)
+    dirname = path.dirname(arcpy.Describe(data_path).catalogPath)
     desc = arcpy.Describe(dirname)
     if hasattr(desc, "datasetType") and desc.datasetType == 'FeatureDataset':
-        dirname = os.path.dirname(dirname)
+        dirname = path.dirname(dirname)
 
     # Start edit session
     edit = arcpy.da.Editor(dirname)
@@ -151,17 +156,22 @@ def update_fc(data_path, fld, sequence_value, interval, seq_format='{}'):
 
     # find and update all features that need ids
     sql = """{} is null""".format(fld)
-    with arcpy.da.UpdateCursor(fc, fld, where_clause=sql) as fcrows:
+    with arcpy.da.UpdateCursor(data_path, fld, where_clause=sql) as fcrows:
 
         for row in fcrows:
 
             # Calculate a new id value from a string and the current id value
             row[0] = seq_format.format(sequence_value)
 
-            fcrows.updateRow(row)
+            try:
+
+                fcrows.updateRow(row)
+
+            except RuntimeError:
+                return 'error: The value type is incompatible with the field type. [{}]'.format(fld)
 
             # increment the sequence value by the specified interval
-            sequence_value += interval_value
+            sequence_value += interval
 
     return sequence_value
 
@@ -207,8 +217,13 @@ def main():
                                                    interval,
                                                    seq_format)
 
+
+                # handle errors writing values to fields
+                if type(new_sequence_value) == str:
+                    raise Exception(new_sequence_value)
+
                 # Update the settings with the latest sequence values
-                if sequence_value != new_sequence_value:
+                elif sequence_value != new_sequence_value:
 
                     # Look for error messages
                     if not isinstance(new_sequence_value, (int, float)):
