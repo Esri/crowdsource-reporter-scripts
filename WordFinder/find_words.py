@@ -21,7 +21,7 @@
 
 import re
 from datetime import datetime as dt
-from os import path
+from os import path, sys
 import wordlist
 from arcresthelper import securityhandlerhelper
 from arcrest.agol import FeatureLayer
