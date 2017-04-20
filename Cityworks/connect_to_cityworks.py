@@ -24,61 +24,30 @@
 
 # ------------------------------------------------------------------------------
 
-""" TODO:
-        - Build UI
-"""
+from arcgis.gis import GIS, Group, Layer
+from arcgis.features import FeatureLayer, Table
+from arcgis.features.managers import AttachmentManager
 
-import arcgis
+import configparser
 import json
 import six
-
 from os import path, sys, remove
 from datetime import datetime as dt
 
-# Cityworks settings
-baseUrl = "https://cloud01.cityworks.com/_DEMO_KSMMS_15-1_EsriAppsDemo"
-cwUser = "water"
-cwPwd = "water"
+cityworksfields = ['RequestId', 'DomainId', 'ProjectSid', 'ProblemCode', 'Details', 'ReqCategory', 'Description', 'Priority', 'ProblemSid', 'ReqCustFieldCatId', 'ProbAddress', 'ProbCity', 'ProbZip', 'ProbAddType', 'InitiatedBy', 'ProjectName', 'ProbAptNum', 'ProbLandmark', 'ProbDistrict', 'ProbState', 'ProbLocation', 'InitiatedByApp']
 
-# ArcGIS Online/Portal settings
-orgUrl = "http://arcgis4localgov2.maps.arcgis.com"
-username = "amuise_lg"
-password = "pigsfly"
-proxy_port = None
-proxy_url = None
-services = [['http://services.arcgis.com/b6gLrKHqgkQb393u/arcgis/rest/services/cw2/FeatureServer/0',
-             'http://services.arcgis.com/b6gLrKHqgkQb393u/arcgis/rest/services/cw2/FeatureServer/1']]
-
-# Esri field names
-fc_type = 'PROBTYPE'        # Values in this field must match Cityworks ProblemCode values
-fc_address = 'ADDRESS'      # Street Address of the reporter
-fc_city = 'CITY'            # City of the reporter
-fc_state = 'STATE'          # State of the reporter
-fc_zip = 'ZIP'              # ZIP fo the reporter
-fc_fname = 'FNAME'          # First name of the reporter
-fc_lname = 'LNAME'          # Last name of the reporter
-fc_phone = 'PHONE'          # Phone number of the reporter
-fc_email = 'EMAIL'          # Email of the reporter
-fc_description = 'DETAILS'  # Report details
-fc_location = 'LOCATION'    # Captured location of the report (app must be configured for this)
-fc_reportid = 'REPORTID'    # Field to store Cityworks report ID value
-fc_flag = "STATUS"          # Field used to identify reports to be pushed to CW
-flag_values = ['Submitted', 'Received']  # Value of reports to push, value of processed reports
-
-cm_fname = 'FNAME'
-cm_lname = 'LNAME'
-cm_addr = 'ADDRESS'
-cm_city = 'CITY'
-cm_zip = 'ZIP'
-cm_state = 'STATE'
-cm_phone = 'PHONENUM'
-cm_email = 'EMAIL'
-cm_subdt = 'CreationDate'
-cm_comments = 'COMMENT'
-
-# Global vars
+layer_fields = []
+table_fields = []
+groupid = ''
+agol_user = ''
+agol_pass = ''
+agol_org = ''
+layer_list = ''
+table_list = ''
+gis = ''
+flag_field = ''
 cw_token = ""
-
+baseUrl = ""
 
 def get_response(url):
     http_response = six.moves.urllib.request.urlopen(url)
@@ -87,9 +56,9 @@ def get_response(url):
     return json.loads(decoded.strip())
 
 
-def get_cw_token():
+def get_cw_token(user, pwd):
     """Retrieve a token for CityWorks access"""
-    data = {"LoginName": cwUser, "Password": cwPwd}
+    data = {"LoginName": user, "Password": pwd}
     json_data = six.moves.urllib.parse.quote(json.dumps(data, separators=(',', ':')))
     url = '{}/Services/authentication/authenticate?data={}'.format(baseUrl, json_data)
 
@@ -138,39 +107,30 @@ def get_problem_types():
         return 'error: ' + str(error)
 
 
-def submit_to_cw(row, prob_types):
+def submit_to_cw(row, prob_types, fields, oid, typefields):
 
     attrs = row.attributes
     geometry = row.geometry
 
     try:
-        prob_sid = prob_types[attrs[fc_type].upper()]
+        prob_sid = prob_types[attrs[typefields[1]].upper()]
 
     except KeyError:
-        if attrs[fc_type].strip() == '':
-            return 'WARNING: No problem type provided. Record {} not exported.\n'.format(attrs['OBJECTID'])
+        if attrs[typefields[1]].strip() == '':
+            return 'WARNING: No problem type provided. Record {} not exported.\n'.format(oid)
         else:
-            return 'WARNING: Problem type {} not found in Cityworks. Record {} not exported.\n'.format(attrs[fc_type],
-                                                                                                       attrs['OBJECTID'])
+            return 'WARNING: Problem type {} not found in Cityworks. Record {} not exported.\n'.format(attrs[typefields[1]], oid)
 
     except AttributeError:
-        return 'WARNING: Record {} not exported due to missing value in field {}\n'.format(attrs['OBJECTID'], fc_type)
+        return 'WARNING: Record {} not exported due to missing value in field {}\n'.format(oid, typefields[1])
 
     # Build dictionary of values to submit to CW
-    values = {"CallerAddress": str(attrs[fc_address]),
-              "CallerCity": str(attrs[fc_city]),
-              "CallerState": str(attrs[fc_state]),
-              "CallerZip": str(attrs[fc_zip]),
-              "CallerFirstName": str(attrs[fc_fname]),
-              "CallerLastName": str(attrs[fc_lname]),
-              "CallerHomePhone": str(attrs[fc_phone]),
-              "CallerEmail": str(attrs[fc_email]),
-              "Details": str(attrs[fc_description]),
-              "InitiatedByApp": 'Crowdsource Reporter',
-              "Location": str(attrs[fc_location]),
-              "ProblemSid": prob_sid,
-              "X": geometry['x'],
-              "Y": geometry['y']}
+    values = {}
+    for a_field, c_field in fields:
+        values[c_field] = str(attrs[a_field])
+    values["X"] = geometry['x']
+    values["Y"] = geometry['y']
+    values[typefields[0]] = prob_sid
 
     # Convert dict to pretty print json
     json_data = six.moves.urllib.parse.quote(json.dumps(values, separators=(',', ':')))
@@ -184,7 +144,7 @@ def submit_to_cw(row, prob_types):
 
 def copy_attachment(lyr, oid, requestid):
 
-    attachmentmgr = arcgis.features.managers.AttachmentManager(lyr)
+    attachmentmgr = AttachmentManager(lyr)
     attachments = attachmentmgr.get_list(oid)
 
     for attachment in attachments:
@@ -203,7 +163,7 @@ def copy_attachment(lyr, oid, requestid):
         return response
 
 
-def copy_comments(lyr, pkey_fld, record, fkey_fld):
+def copy_comments(lyr, pkey_fld, record, fkey_fld, fields, ids):
 
     try:
         sql = "{} = {}".format(pkey_fld, record.attributes[fkey_fld])
@@ -214,20 +174,12 @@ def copy_comments(lyr, pkey_fld, record, fkey_fld):
         parents = lyr.query(where=sql)
 
     parent = parents.features[0]
-    if not parent.attributes[fc_reportid]:
+    if not parent.attributes[ids[1]]:
         return ""
 
-    values = {"RequestId": parent.attributes[fc_reportid],
-              "FirstName": record.attributes[cm_fname],
-              "LastName": record.attributes[cm_lname],
-              "CustAddress": record.attributes[cm_addr],
-              "CustCity": record.attributes[cm_city],
-              "CustZip": record.attributes[cm_zip],
-              "CustState": record.attributes[cm_state],
-              "OtherPhone": record.attributes[cm_phone],
-              "Email": record.attributes[cm_email],
-              "ProbDetails": record.attributes[cm_comments],
-              "CallerType": "CS Reporter"}
+    values = {id_fields[0]: parent.attributes[ids[1]]}
+    for a_field, c_field in fields:
+        values[c_field] = record.attributes[a_field]
 
     json_data = six.moves.urllib.parse.quote(json.dumps(values, separators=(',', ':')))
     url = '{}/Services/AMS/CustomerCall/AddToRequest?data={}&token={}'.format(baseUrl, json_data, cw_token)
@@ -236,7 +188,7 @@ def copy_comments(lyr, pkey_fld, record, fkey_fld):
     return response
 
 
-def main():
+def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields, tablefields, fc_flag, flag_values, ids, probtypes):
 
     id_log = path.join(sys.path[0], 'cityworks_log.log')
     with open(id_log, 'a') as log:
@@ -244,10 +196,10 @@ def main():
 
         try:
             # Connect to org/portal
-            gis = arcgis.gis.GIS(orgUrl, username, password)
+            gis = GIS(orgUrl, username, password)
 
             # Get token for CW
-            status = get_cw_token()
+            status = get_cw_token(cwUser, cwPwd)
 
             if 'error' in status:
                 log.write('Failed to get Cityworks token. {}\n'.format(status))
@@ -267,10 +219,20 @@ def main():
                 log.write('Problem types not defined\n')
                 raise Exception('Problem types not defined')
 
-            # connect to reporting services
-            for service, reltable in services:
-                lyr = arcgis.features.FeatureLayer(service, gis=gis)
+            for layer in layers:
+                lyr = FeatureLayer(layer, gis=gis)
                 oid_fld = lyr.properties.objectIdField
+
+                # Get related table URL
+                reltable = ''
+                for relate in lyr.properties.relationships:
+                    url_pieces = layer.split('/')
+                    url_pieces[-1] = str(relate['relatedTableId'])
+                    table_url = '/'.join(url_pieces)
+
+                    if table_url in tables:
+                        reltable = table_url
+                        break
 
                 # query reports
                 sql = "{}='{}'".format(fc_flag, flag_values[0])
@@ -283,7 +245,7 @@ def main():
 
                     # Submit feature to the Cityworks database
                     print('submitting to cw')
-                    requestid = submit_to_cw(row, prob_types)
+                    requestid = submit_to_cw(row, prob_types, layerfields, oid, probtypes)
 
                     try:
                         if 'WARNING' in requestid:
@@ -297,15 +259,17 @@ def main():
 
                     # attachments
                     print('adding attachments')
+
                     response = copy_attachment(lyr, oid, requestid)
+                    print(response)
 
                     # update the record in the service so that it evaluates falsely against sql
                     print('updating service')
                     row.attributes[fc_flag] = flag_values[1]
                     try:
-                        row.attributes[fc_reportid] = requestid
+                        row.attributes[ids[1]] = requestid
                     except TypeError:
-                        row.attributes[fc_reportid] = str(requestid)
+                        row.attributes[ids[1]] = str(requestid)
 
                     updated_rows.append(row)
 
@@ -313,31 +277,56 @@ def main():
                 if updated_rows:
                     lyr.edit_features(updates=updated_rows)
 
-                # related records
-                rellyr = arcgis.features.FeatureLayer(reltable, gis=gis)
+                    # related records
+                    rellyr = FeatureLayer(reltable, gis=gis)
 
-                pkey_fld = lyr.properties.relationships[0]['keyField']
-                fkey_fld = rellyr.properties.relationships[0]['keyField']
-                sql = "{} IS NULL".format(fc_flag, None)
-                rel_records = rellyr.query(where=sql)
-                updated_rows = []
-                for record in rel_records:
-                    print('updating related records')
-                    response = copy_comments(lyr, pkey_fld, record, fkey_fld)
-                    if response:
-                        record.attributes[fc_flag] = flag_values[1]
+                    pkey_fld = lyr.properties.relationships[0]['keyField']
+                    fkey_fld = rellyr.properties.relationships[0]['keyField']
+                    sql = "{} IS NULL".format(fc_flag, None)
+                    rel_records = rellyr.query(where=sql)
+                    updated_rows = []
+                    for record in rel_records:
+                        print('updating related records')
+                        response = copy_comments(lyr, pkey_fld, record, fkey_fld, tablefields, ids)
+                        if response:
+                            record.attributes[fc_flag] = flag_values[1]
 
-                        updated_rows.append(record)
+                            updated_rows.append(record)
 
-                # apply edits to updated records
-                if updated_rows:
-                    rellyr.edit_features(updates=updated_rows)
+                            # apply edits to updated records
+                    if updated_rows:
+                        rellyr.edit_features(updates=updated_rows)
 
-                print('Done')
+                    print('Done')
 
         except Exception as ex:
             print('error: ' + str(ex))
 
 
 if __name__ == '__main__':
-    main()
+    configfile = r'C:\Users\alli6394\Desktop\arcgis_cw_config.ini'
+
+    config = configparser.ConfigParser()
+    config.read(configfile)
+
+    # Cityworks settings
+    global baseUrl
+    baseUrl = config['cityworks']['url']
+    cwUser = config['cityworks']['username']
+    cwPwd = config['cityworks']['password']
+
+    # ArcGIS Online/Portal settings
+    orgUrl = config['arcgis']['url']
+    username = config['arcgis']['username']
+    password = config['arcgis']['password']
+    # proxy_port = None
+    # proxy_url = None
+    layers = [url for url in config['arcgis']['layers'].split(',')]
+    tables = [url for url in config['arcgis']['tables'].split(',')]
+    layerfields = [pair.split(',') for pair in config['fields']['layers'].split(';')]
+    tablefields = [pair.split(',') for pair in config['fields']['tables'].split(';')]
+    fc_flag = config['flag']['field']
+    flag_values = [config['flag']['on'], config['flag']['off']]
+    id_fields = [field for field in config['fields']['ids'].split(',')]
+    probtypes = [field for field in config['fields']['type'].split(',')]
+    main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields, tablefields, fc_flag, flag_values, id_fields, probtypes)
