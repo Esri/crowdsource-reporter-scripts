@@ -126,7 +126,8 @@ def submit_to_cw(row, prob_types, fields, oid, typefields):
 
     # Build dictionary of values to submit to CW
     values = {}
-    for a_field, c_field in fields:
+    for fieldset in fields:
+        c_field, a_field = fieldset
         values[c_field] = str(attrs[a_field])
     values["X"] = geometry['x']
     values["Y"] = geometry['y']
@@ -166,7 +167,7 @@ def copy_attachment(lyr, oid, requestid):
 def copy_comments(lyr, pkey_fld, record, fkey_fld, fields, ids):
 
     try:
-        sql = "{} = {}".format(pkey_fld, record.attributes[fkey_fld])
+        sql = "{} = '{}'".format(pkey_fld, record.attributes[fkey_fld])
         parents = lyr.query(where=sql)
 
     except Exception:
@@ -178,8 +179,8 @@ def copy_comments(lyr, pkey_fld, record, fkey_fld, fields, ids):
         return ""
 
     values = {id_fields[0]: parent.attributes[ids[1]]}
-    for a_field, c_field in fields:
-        values[c_field] = record.attributes[a_field]
+    for field in fields:
+        values[field[0]] = record.attributes[field[1]]
 
     json_data = six.moves.urllib.parse.quote(json.dumps(values, separators=(',', ':')))
     url = '{}/Services/AMS/CustomerCall/AddToRequest?data={}&token={}'.format(baseUrl, json_data, cw_token)
@@ -200,6 +201,7 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
 
             # Get token for CW
             status = get_cw_token(cwUser, cwPwd)
+
 
             if 'error' in status:
                 log.write('Failed to get Cityworks token. {}\n'.format(status))
@@ -244,13 +246,11 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
                     print(oid)
 
                     # Submit feature to the Cityworks database
-                    print('submitting to cw')
                     requestid = submit_to_cw(row, prob_types, layerfields, oid, probtypes)
 
                     try:
                         if 'WARNING' in requestid:
-                            print(requestid)
-                            log.write(requestid)
+                            log.write('Warning generated while copying record to Cityworks: {}\n'.format(requestid))
                             continue
                         else:
                             pass  # requestID is str = ok
@@ -258,13 +258,10 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
                         pass  # requestID is a number = ok
 
                     # attachments
-                    print('adding attachments')
-
-                    response = copy_attachment(lyr, oid, requestid)
-                    print(response)
+                    # response = copy_attachment(lyr, oid, requestid)
+                    # print(response)
 
                     # update the record in the service so that it evaluates falsely against sql
-                    print('updating service')
                     row.attributes[fc_flag] = flag_values[1]
                     try:
                         row.attributes[ids[1]] = requestid
@@ -275,29 +272,30 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
 
                 # apply edits to updated features
                 if updated_rows:
-                    lyr.edit_features(updates=updated_rows)
+                    status = lyr.edit_features(updates=updated_rows)
+                    log.write('Status of updates to ArcGIS layers: {}\n'.format(status))
 
-                    # related records
-                    rellyr = FeatureLayer(reltable, gis=gis)
+                # related records
+                rellyr = FeatureLayer(reltable, gis=gis)
 
-                    pkey_fld = lyr.properties.relationships[0]['keyField']
-                    fkey_fld = rellyr.properties.relationships[0]['keyField']
-                    sql = "{} IS NULL".format(fc_flag, None)
-                    rel_records = rellyr.query(where=sql)
-                    updated_rows = []
-                    for record in rel_records:
-                        print('updating related records')
-                        response = copy_comments(lyr, pkey_fld, record, fkey_fld, tablefields, ids)
-                        if response:
-                            record.attributes[fc_flag] = flag_values[1]
+                pkey_fld = lyr.properties.relationships[0]['keyField']
+                fkey_fld = rellyr.properties.relationships[0]['keyField']
+                sql = "{} IS NULL".format(fc_flag, None)
+                rel_records = rellyr.query(where=sql)
+                updated_rows = []
+                for record in rel_records:
+                    response = copy_comments(lyr, pkey_fld, record, fkey_fld, tablefields, ids)
+                    if response:
+                        record.attributes[fc_flag] = flag_values[1]
+                        log.write('Status of updates to Cityworks comments: {}\n'.format(response))
+                        updated_rows.append(record)
 
-                            updated_rows.append(record)
+                # apply edits to updated records
+                if updated_rows:
+                    status = rellyr.edit_features(updates=updated_rows)
+                    log.write('Status of updates to ArcGIS comments: {}\n'.format(status))
 
-                            # apply edits to updated records
-                    if updated_rows:
-                        rellyr.edit_features(updates=updated_rows)
-
-                    print('Done')
+                print('Done')
 
         except Exception as ex:
             print('error: ' + str(ex))
