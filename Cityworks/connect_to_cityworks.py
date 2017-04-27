@@ -153,15 +153,12 @@ def copy_attachment(lyr, oid, requestid):
         attpath = attachmentmgr.download(oid, attachment['id'])
 
         # upload attachment
-        values = {"Filename": attpath, "WorkOrderId": requestid}
-        json_data = six.moves.urllib.parse.quote(json.dumps(values, separators=(',', ':')))
-        url = '{}/Services/AMS/Attachments/AddWorkOrderAttachment?data={}&token={}'.format(baseUrl, json_data, cw_token)
-        response = get_response(url)
+        # ***   TODO   ***
 
         # delete downloaded file
         remove(attpath)
 
-        return response
+        # return response
 
 
 def copy_comments(lyr, pkey_fld, record, fkey_fld, fields, ids):
@@ -302,7 +299,7 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
 
 
 if __name__ == '__main__':
-    configfile = r'C:\Users\alli6394\Desktop\arcgis_cw_config.ini'
+    configfile = sys.argv[1]  # r'C:\Users\alli6394\Desktop\arcgis_cw_config.ini'
 
     config = configparser.ConfigParser()
     config.read(configfile)
@@ -327,4 +324,6 @@ if __name__ == '__main__':
     flag_values = [config['flag']['on'], config['flag']['off']]
     id_fields = [field for field in config['fields']['ids'].split(',')]
     probtypes = [field for field in config['fields']['type'].split(',')]
-    main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields, tablefields, fc_flag, flag_values, id_fields, probtypes)
+
+    main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields, tablefields,
+         fc_flag, flag_values, id_fields, probtypes)
