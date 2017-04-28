@@ -100,7 +100,6 @@ class Tool(object):
             parameterType="Required",
             direction="Input"
         )
-        portal_url.value = 'http://localgovtest.maps.arcgis.com'
 
         portal_user = arcpy.Parameter(
             displayName="ArcGIS Username",
@@ -109,7 +108,6 @@ class Tool(object):
             parameterType="Required",
             direction="Input"
         )
-        portal_user.value = 'allison_demo'
 
         portal_pw = arcpy.Parameter(
             displayName="ArcGIS Password",
@@ -215,20 +213,20 @@ class Tool(object):
         group.filter.type = 'ValueList'
         group.filter.list = ['Provide ArcGIS credentials to see group list']
 
-        fl_flds.columns = [['GPString', 'Cityworks Field'], ['GPString', 'ArcGIS Field']]
-        fl_flds.filters[0].type = 'ValueList'
-        fl_flds.filters[0].list = cityworksfields
+        fl_flds.columns = [['GPString', 'ArcGIS Field'], ['GPString', 'Cityworks Field']]
         fl_flds.filters[1].type = 'ValueList'
-        fl_flds.filters[1].list = ['Provide credentials and select a group to see field list']
+        fl_flds.filters[1].list = cityworksfields
+        fl_flds.filters[0].type = 'ValueList'
+        fl_flds.filters[0].list = ['Provide credentials and select a group to see field list']
 
         flag_fld.filter.type = 'ValueList'
         flag_fld.filter.list = ['Provide credentials and select a group to see field list']
 
-        tb_flds.columns = [['GPString', 'Cityworks Field'], ['GPString', 'ArcGIS Field']]
-        tb_flds.filters[0].type = 'ValueList'
-        tb_flds.filters[0].list = cityworksfields
+        tb_flds.columns = [['GPString', 'ArcGIS Field'], ['GPString', 'Cityworks Field']]
         tb_flds.filters[1].type = 'ValueList'
-        tb_flds.filters[1].list = ['1', '2']
+        tb_flds.filters[1].list = cityworksfields
+        tb_flds.filters[0].type = 'ValueList'
+        tb_flds.filters[0].list = ['1', '2']
 
         flayers.filter.type = 'ValueList'
         flayers.filter.list = ['Provide credentials and select a group to see field list']
@@ -377,7 +375,7 @@ class Tool(object):
             flag_off.value = ''
             flag_off.filter.list = []
             flag_off.enabled = False
-            fl_flds.filters[1].list = ['Provide credentials and select a group to see field list']
+            fl_flds.filters[0].list = ['Provide credentials and select a group to see field list']
             fl_flds.value = ''
             fl_flds.enabled = False
             flag_fld.filter.list = table_fields
@@ -407,7 +405,7 @@ class Tool(object):
                 else:
                     layer_fields = new_fields
 
-            fl_flds.filters[1].list = layer_fields
+            fl_flds.filters[0].list = layer_fields
             report_id.filter.list = layer_fields
             report_type.filter.list = layer_fields
 
@@ -448,7 +446,7 @@ class Tool(object):
                 else:
                     table_fields = new_fields
 
-                tb_flds.filters[1].list = table_fields
+                tb_flds.filters[0].list = table_fields
 
             if flayers.value:
                 flag_fld.filter.list = list(set(table_fields) & set(layer_fields))
@@ -481,8 +479,8 @@ class Tool(object):
                          'layers': layer_urls,
                          'tables': table_urls}
 
-        cfg['fields'] = {'layers': ';'.join(['{},{}'.format(field[0], field[1]) for field in fl_flds.value]),
-                         'tables': ';'.join(['{},{}'.format(field[0], field[1]) for field in tb_flds.value]),
+        cfg['fields'] = {'layers': ';'.join(['{},{}'.format(field[1], field[0]) for field in fl_flds.value]),
+                         'tables': ';'.join(['{},{}'.format(field[1], field[0]) for field in tb_flds.value]),
                          'ids': '{},{}'.format(cw_id.value, report_id.value),
                          'type': '{},{}'.format(cw_probtype.value, report_type.value)}
         cfg['flag'] = {'field': flag_fld.value,

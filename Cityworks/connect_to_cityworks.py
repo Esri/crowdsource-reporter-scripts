@@ -24,8 +24,8 @@
 
 # ------------------------------------------------------------------------------
 
-from arcgis.gis import GIS, Group, Layer
-from arcgis.features import FeatureLayer, Table
+from arcgis.gis import GIS  # , Group, Layer
+from arcgis.features import FeatureLayer  # , Table
 from arcgis.features.managers import AttachmentManager
 
 import configparser
@@ -48,6 +48,7 @@ gis = ''
 flag_field = ''
 cw_token = ""
 baseUrl = ""
+
 
 def get_response(url):
     http_response = six.moves.urllib.request.urlopen(url)
@@ -186,7 +187,8 @@ def copy_comments(lyr, pkey_fld, record, fkey_fld, fields, ids):
     return response
 
 
-def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields, tablefields, fc_flag, flag_values, ids, probtypes):
+def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields, tablefields, fc_flag, flag_values,
+         ids, probtypes):
 
     id_log = path.join(sys.path[0], 'cityworks_log.log')
     with open(id_log, 'a') as log:
@@ -198,7 +200,6 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
 
             # Get token for CW
             status = get_cw_token(cwUser, cwPwd)
-
 
             if 'error' in status:
                 log.write('Failed to get Cityworks token. {}\n'.format(status))
@@ -299,6 +300,9 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
 
 
 if __name__ == '__main__':
+
+    import sys
+
     configfile = sys.argv[1]  # r'C:\Users\alli6394\Desktop\arcgis_cw_config.ini'
 
     config = configparser.ConfigParser()
@@ -325,5 +329,5 @@ if __name__ == '__main__':
     id_fields = [field for field in config['fields']['ids'].split(',')]
     probtypes = [field for field in config['fields']['type'].split(',')]
 
-    main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields, tablefields,
-         fc_flag, flag_values, id_fields, probtypes)
+    main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields, tablefields, fc_flag, flag_values,
+         id_fields, probtypes)
