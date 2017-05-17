@@ -36,49 +36,45 @@ use_tls = True
 from_address = ''
 reply_to = ''
 
-# Status field
-emails_sent_text = 'Yes'
-
 # Services to send e-mail notifications for. Repeat for each service to send e-mails for.
+#           Each service can have multiple messages
 #   service url: URL of the AGOL/Portal service layer (including index number)
-#   user email field: Field in the service containing the submitter's e-mail address
-#   internal email address: E-mail address of the person or alias inside the organization
-#       to notify when a new report is submitted
-#   email status field: Text status field used to determine if e-mails have already been
+#   query: Field name: value pairs used to identify which features require each message.
+#           For example, use 'STATUS': 'Submitted', 'VISIBLE': 'Yes' to only send this message for reports that have
+#           the value 'Submitted' in the field 'STATUS and the value 'Yes' in the field 'VISIBLE'.
+#   email address: E-mail address, or name of the field containing the email address, where the notification should be sent.
+#   email body template: Relative path to html to include in the body of the e-mail sent to the user.
+#   email subject: Subject of the e-mail sent to the user.
+#   body substitutions: Pairs of strings and values or strings and field names used to customize the text in the body
+#           of the email. It is strongly recommended to use special characters in these strings to avoid
+#           accidentally substituting the wrong content
+#           For example, include include the string Hello, {name} in the email template and set the body substitution
+#           value to '{name}': 'NAME' to replace the characters {name} with the value in the NAME field of the report.
+#   status field: Text status field used to determine if this message has already been
 #       sent for the report. The emails_sent_text variable determines the value used to
 #       query for to find records that have not yet had e-mail notifications sent
-#   user email body template: Relative path to html to include in the body of the e-mail
-#       sent to the user.
-#   user email subject: Subject of the e-mail sent to the user.
-#   internal email body template: Relative path to html to include in the body of the e-mail
-#       sent to the person or alias inside the organization.
-#   internal email subject: Subject of the e-mail sent to the person or alias inside the organization.
-email_services = [
-        {'service url': '',
-         'user email field': '',
-         'internal email address': '',
-         'email status field': '',
-         'user email body template': './user_email_template.html',
-         'user email subject': 'Thank you for your submission',
-         'internal email body template': './internal_email_template.html',
-         'internal email subject': 'New problem report submitted'},
+#   completed value: Value in the status field that indicates that this message has already been sent for this report.
 
-        {'service url': '',
-         'user email field': '',
-         'internal email address': '',
-         'email status field': '',
-         'user email body template': './user_email_template.html',
-         'user email subject': 'Thank you for your submission',
-         'internal email body template': './internal_email_template.html',
-         'internal email subject': 'New problem report submitted'},
-        ]
+email_services = [
+        {'service url': 'http://services.arcgis.com/b6gLrKHqgkQb393u/arcgis/rest/services/allisontest/FeatureServer/0',
+         'messages': [
+                 {'query': {'': ''},
+                  'email address': '',
+                  'email body template': '',
+                  'email subject': '',
+                  'body substitutions': {'': ''},
+                  'status field': '',
+                  'completed value': ''}
+         ]}
+    ]
+
 
 def _get_features(feature_layer, where_clause):
     """Get the features for the given feature layer of a feature service. Returns a list of json features.
     Keyword arguments:
     feature_layer - The feature layer to return the features for
     where_clause - The expression used in the query"""
-      
+
     total_features = []
     max_record_count = feature_layer.properties['maxRecordCount']
     if max_record_count < 1:
@@ -92,6 +88,7 @@ def _get_features(feature_layer, where_clause):
         offset += len(features)
     return total_features
 
+
 def main():
     log = path.join(sys.path[0], 'email_log.log')
     with open(log, 'a') as log:
@@ -104,35 +101,47 @@ def main():
                         if email_service['service url'] == '':
                             continue
 
-                        user_email_field = email_service['user email field']
-                        internal_email_address = email_service['internal email address']
+                        for message in email_service['messages']:
 
-                        feature_layer = FeatureLayer(email_service['service url'], target)
-                        features = _get_features(feature_layer, "{0} IS NULL OR {0} != '{1}'".format(email_service['email status field'], emails_sent_text))
-                        for feature in features:
-                            if user_email_field in feature.fields:
-                                html = path.join(path.dirname(__file__), email_service['user email body template'])
-                                with open(html) as file:
-                                    email_body = file.read()
-                                    email_server.send(from_address=from_address, reply_to=reply_to, 
-                                                      to_addresses=[feature.attributes[user_email_field]], 
-                                                      subject=email_service['user email subject'],
-                                                      email_body=email_body)
+                            # build sql
+                            sql = "{} != '{}'".format(message['status field'], message['completed value'])
+                            for field in message['query']:
+                                sql += " AND {} = '{}'".format(field, message['query'][field])
 
-                            if internal_email_address != "":
-                                html = path.join(path.dirname(__file__), email_service['internal email body template'])
-                                with open(html) as file:
-                                    email_body = file.read()
-                                    email_server.send(from_address=from_address, reply_to=reply_to, 
-                                                      to_addresses=[internal_email_address], 
-                                                      subject=email_service['internal email subject'],
-                                                      email_body=email_body)
+                            feature_layer = FeatureLayer(email_service['service url'], target)
+                            features = _get_features(feature_layer, sql)
 
-                            feature.attributes[email_service['email status field']] = emails_sent_text
-                        
-                        if len(features) > 0:
-                            feature_layer.edit_features(updates=features)
-                
+                            for feature in features:
+                                if message['email address']:
+                                    if message['email address'] in feature.fields:
+                                        email = feature.attributes[message['email address']]
+                                    else:
+                                        email = message['email address']
+
+                                if email:
+                                    html = path.join(path.dirname(__file__), message['email body template'])
+                                    with open(html) as file:
+                                        email_body = file.read()
+                                        for sub in message['body substitutions']:
+                                            if message['body substitutions'][sub] in feature.fields:
+                                                email_body = email_body.replace(sub, feature.attributes[message['body substitutions'][sub]])
+                                            else:
+                                                email_body = email_body.replace(sub, message['body substitutions'][sub])
+
+                                        email_server.send(from_address=from_address,
+                                                          reply_to=reply_to,
+                                                          to_addresses=[email],
+                                                          subject=message['email subject'],
+                                                          email_body=email_body)
+
+                                feature.attributes[message['status field']] = message['completed value']
+
+                            if len(features) > 0:
+                                status = feature_layer.edit_features(updates=features)
+                                for value in status['updateResults']:
+                                    if not value['success']:
+                                        log.write(value)
+
                     except Exception as ex:
                         print(ex)
                         log.write('{0} - {1}\n'.format(dt.now(), ex))
