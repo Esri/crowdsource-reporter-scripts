@@ -37,11 +37,14 @@ from_address = ''
 reply_to = ''
 
 # Services to send e-mail notifications for. Repeat for each service to send e-mails for.
-#           Each service can have multiple messages
+# Each service can have multiple messages
 #   service url: URL of the AGOL/Portal service layer (including index number)
-#   query: Field name: value pairs used to identify which features require each message.
-#           For example, use 'STATUS': 'Submitted', 'VISIBLE': 'Yes' to only send this message for reports that have
-#           the value 'Submitted' in the field 'STATUS and the value 'Yes' in the field 'VISIBLE'.
+#   query: SQL where clause used to identify which features require each message.
+#           For example, use "'STATUS' = 'Submitted' AND 'PRIORITY' = 1" to only send this message for reports that have
+#           both the value 'Submitted' in the text field 'STATUS' and the value 1 in the numeric field 'PRIORITY'.
+#           *** Pay close attention to the use of double quotes to surround the entire clause, single quotes around the
+#           field names and text field values, and no quotes around values from numeric fields.
+#           All field names and values are case-sensitive.***
 #   email address: E-mail address, or name of the field containing the email address, where the notification should be sent.
 #   email body template: Relative path to html to include in the body of the e-mail sent to the user.
 #   email subject: Subject of the e-mail sent to the user.
@@ -50,15 +53,15 @@ reply_to = ''
 #           accidentally substituting the wrong content
 #           For example, include include the string Hello, {name} in the email template and set the body substitution
 #           value to '{name}': 'NAME' to replace the characters {name} with the value in the NAME field of the report.
-#   status field: Text status field used to determine if this message has already been
-#       sent for the report. The emails_sent_text variable determines the value used to
-#       query for to find records that have not yet had e-mail notifications sent
+#   status field: Text field used to determine if this message has already been sent for the report.
+#           The emails_sent_text variable determines the value used to query for to find records that have not yet
+#           had e-mail notifications sent
 #   completed value: Value in the status field that indicates that this message has already been sent for this report.
 
 email_services = [
         {'service url': 'http://services.arcgis.com/b6gLrKHqgkQb393u/arcgis/rest/services/allisontest/FeatureServer/0',
          'messages': [
-                 {'query': {'': ''},
+                 {'query': "",
                   'email address': '',
                   'email body template': '',
                   'email subject': '',
@@ -74,14 +77,17 @@ def _get_features(feature_layer, where_clause):
     Keyword arguments:
     feature_layer - The feature layer to return the features for
     where_clause - The expression used in the query"""
-
+      
     total_features = []
     max_record_count = feature_layer.properties['maxRecordCount']
     if max_record_count < 1:
         max_record_count = 1000
     offset = 0
     while True:
-        features = feature_layer.query(where=where_clause, return_geometry=False, result_offset=offset, result_record_count=max_record_count).features
+        features = feature_layer.query(where=where_clause,
+                                       return_geometry=False,
+                                       result_offset=offset,
+                                       result_record_count=max_record_count).features
         total_features += features
         if len(features) < max_record_count:
             break
@@ -105,8 +111,7 @@ def main():
 
                             # build sql
                             sql = "{} != '{}'".format(message['status field'], message['completed value'])
-                            for field in message['query']:
-                                sql += " AND {} = '{}'".format(field, message['query'][field])
+                            sql += " AND {}".format(message['query'])
 
                             feature_layer = FeatureLayer(email_service['service url'], target)
                             features = _get_features(feature_layer, sql)
@@ -119,20 +124,24 @@ def main():
                                         email = message['email address']
 
                                 if email:
-                                    html = path.join(path.dirname(__file__), message['email body template'])
-                                    with open(html) as file:
-                                        email_body = file.read()
-                                        for sub in message['body substitutions']:
-                                            if message['body substitutions'][sub] in feature.fields:
-                                                email_body = email_body.replace(sub, feature.attributes[message['body substitutions'][sub]])
-                                            else:
-                                                email_body = email_body.replace(sub, message['body substitutions'][sub])
+                                    try:
+                                        html = path.join(path.dirname(__file__), message['email body template'])
+                                        with open(html) as file:
+                                            email_body = file.read()
+                                            for sub in message['body substitutions']:
+                                                if message['body substitutions'][sub] in feature.fields:
+                                                    email_body = email_body.replace(sub, feature.attributes[message['body substitutions'][sub]])
+                                                else:
+                                                    email_body = email_body.replace(sub, message['body substitutions'][sub])
 
-                                        email_server.send(from_address=from_address,
-                                                          reply_to=reply_to,
-                                                          to_addresses=[email],
-                                                          subject=message['email subject'],
-                                                          email_body=email_body)
+                                            email_server.send(from_address=from_address,
+                                                              reply_to=reply_to,
+                                                              to_addresses=[email],
+                                                              subject=message['email subject'],
+                                                              email_body=email_body)
+                                    except Exception as ex:
+                                        print(ex)
+                                        log.write('{0} - {1}\n'.format(dt.now(), ex))
 
                                 feature.attributes[message['status field']] = message['completed value']
 
@@ -141,7 +150,7 @@ def main():
                                 for value in status['updateResults']:
                                     if not value['success']:
                                         log.write(value)
-
+                
                     except Exception as ex:
                         print(ex)
                         log.write('{0} - {1}\n'.format(dt.now(), ex))
