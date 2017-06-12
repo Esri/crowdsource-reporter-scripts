@@ -34,20 +34,7 @@ import six
 from os import path, sys, remove
 from datetime import datetime as dt
 
-cityworksfields = ['RequestId', 'DomainId', 'ProjectSid', 'ProblemCode', 'Details', 'ReqCategory', 'Description', 'Priority', 'ProblemSid', 'ReqCustFieldCatId', 'ProbAddress', 'ProbCity', 'ProbZip', 'ProbAddType', 'InitiatedBy', 'ProjectName', 'ProbAptNum', 'ProbLandmark', 'ProbDistrict', 'ProbState', 'ProbLocation', 'InitiatedByApp']
-
-layer_fields = []
-table_fields = []
-groupid = ''
-agol_user = ''
-agol_pass = ''
-agol_org = ''
-layer_list = ''
-table_list = ''
-gis = ''
-flag_field = ''
 cw_token = ""
-baseUrl = ""
 
 
 def get_response(url):
@@ -241,7 +228,6 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
 
                 for row in rows.features:
                     oid = row.attributes[oid_fld]
-                    print(oid)
 
                     # Submit feature to the Cityworks database
                     requestid = submit_to_cw(row, prob_types, layerfields, oid, probtypes)
@@ -309,7 +295,6 @@ if __name__ == '__main__':
     config.read(configfile)
 
     # Cityworks settings
-    global baseUrl
     baseUrl = config['cityworks']['url']
     cwUser = config['cityworks']['username']
     cwPwd = config['cityworks']['password']

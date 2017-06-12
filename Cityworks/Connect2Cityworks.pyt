@@ -36,7 +36,7 @@ import configparser
 #from os import path, sys, remove
 #from datetime import datetime as dt
 
-cityworksfields = ['RequestId', 'DomainId', 'ProjectSid', 'ProblemCode', 'Details', 'ReqCategory', 'Description', 'Priority', 'ProblemSid', 'ReqCustFieldCatId', 'ProbAddress', 'ProbCity', 'ProbZip', 'ProbAddType', 'InitiatedBy', 'ProjectName', 'ProbAptNum', 'ProbLandmark', 'ProbDistrict', 'ProbState', 'ProbLocation', 'InitiatedByApp']
+cityworksfields = ['AcctNum', 'Address', 'Answers', 'AptNum', 'CallerAcctNum', 'CallerAddress', 'CallerAptNum', 'CallerCallTime', 'CallerCellPhone', 'CallerCity', 'CallerComments', 'CallerDistrict', 'CallerEmail', 'CallerFax', 'CallerFirstName', 'CallerHomePhone', 'CallerIsFollowUpCall', 'CallerIsOwner', 'CallerLastName', 'CallerMiddleInitial', 'CallerOtherPhone', 'CallerState', 'CallerText1', 'CallerText2', 'CallerText3', 'CallerText4', 'CallerText5', 'CallerTitle', 'CallerType', 'CallerWorkPhone', 'CallerZip', 'Ccx', 'Ccy', 'CellPhone', 'City', 'Comments', 'CustAddType', 'CustAddress', 'CustCallback', 'CustCity', 'CustContact', 'CustDistrict', 'CustState', 'CustZip', 'CustomFieldValues', 'Date1', 'Date2', 'Date3', 'Date4', 'Date5', 'DateTimeCall', 'DateTimeCallback', 'DateTimeContact', 'Details', 'DispatchToSid', 'DispatchToUseDispatchToSid', 'District', 'Email', 'EmployeeSid', 'Fax', 'FirstName', 'HomePhone', 'InitiatedByApp', 'IsFollowUpCall', 'IsResident', 'Landmark', 'LastName', 'Location', 'MapPage', 'MiddleInitial', 'Num1', 'Num2', 'Num3', 'Num4', 'Num5', 'OtherPhone', 'OtherSystemId', 'Priority', 'ProbDetails', 'ProblemSid', 'RequestId', 'Shop', 'State', 'StreetName', 'SubmitToSid', 'SubmitToUseSubmitToSid', 'Text1', 'Text10', 'Text11', 'Text12', 'Text13', 'Text14', 'Text15', 'Text16', 'Text17', 'Text18', 'Text19', 'Text2', 'Text20', 'Text3', 'Text4', 'Text5', 'Text6', 'Text7', 'Text8', 'Text9', 'TileNo', 'Title', 'WorkPhone', 'X', 'Y', 'Zip']
 
 layer_fields = []
 table_fields = []
@@ -48,8 +48,6 @@ layer_list = ''
 table_list = ''
 gis = ''
 flag_field = ''
-cw_token = ""
-baseUrl = ""
 
 
 class Toolbox(object):
