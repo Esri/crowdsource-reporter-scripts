@@ -39,7 +39,7 @@ cw_token = ""
 
 def get_response(url):
     http_response = six.moves.urllib.request.urlopen(url)
-    decoded = http_response.read().decode('utf-8')
+    decoded = http_response.read().decode("utf-8")
 
     return json.loads(decoded.strip())
 
@@ -47,52 +47,52 @@ def get_response(url):
 def get_cw_token(user, pwd):
     """Retrieve a token for CityWorks access"""
     data = {"LoginName": user, "Password": pwd}
-    json_data = six.moves.urllib.parse.quote(json.dumps(data, separators=(',', ':')))
-    url = '{}/Services/authentication/authenticate?data={}'.format(baseUrl, json_data)
+    json_data = six.moves.urllib.parse.quote(json.dumps(data, separators=(",", ":")))
+    url = "{}/Services/authentication/authenticate?data={}".format(baseUrl, json_data)
 
     response = get_response(url)
 
     if response == "error":
-        return 'error: {}: {}'.format(response["Status"],
+        return "error: {}: {}".format(response["Status"],
                                       response["Message"])
 
     elif response["Status"] == 0:
         global cw_token
         cw_token = six.moves.urllib.parse.quote(response["Value"]["Token"])
 
-        return 'success'
+        return "success"
 
 
 def get_wkid():
     """Retrieve the WKID of the cityworks layers"""
 
-    url = '{}/Services/AMS/Preferences/User?token={}'.format(baseUrl, cw_token)
+    url = "{}/Services/AMS/Preferences/User?token={}".format(baseUrl, cw_token)
     response = get_response(url)
 
     try:
-        return response['Value']['SpatialReference']
+        return response["Value"]["SpatialReference"]
 
     except KeyError:
-        return 'error'
+        return "error"
 
 
 def get_problem_types():
     """Retrieve a dict of problem types from cityworks"""
 
-    data = {"ForPublicOnly": 'true'}
-    json_data = six.moves.urllib.parse.quote(json.dumps(data, separators=(',', ':')))
-    url = '{}/Services/AMS/ServiceRequest/Problems?data={}&token={}'.format(baseUrl, json_data, cw_token)
+    data = {"ForPublicOnly": "true"}
+    json_data = six.moves.urllib.parse.quote(json.dumps(data, separators=(",", ":")))
+    url = "{}/Services/AMS/ServiceRequest/Problems?data={}&token={}".format(baseUrl, json_data, cw_token)
 
     try:
         response = get_response(url)
         values = {}
-        for val in response['Value']:
-            values[val['ProblemCode'].upper()] = int(val['ProblemSid'])
+        for val in response["Value"]:
+            values[val["ProblemCode"].upper()] = int(val["ProblemSid"])
 
         return values
 
     except Exception as error:
-        return 'error: ' + str(error)
+        return "error: " + str(error)
 
 
 def submit_to_cw(row, prob_types, fields, oid, typefields):
@@ -104,31 +104,31 @@ def submit_to_cw(row, prob_types, fields, oid, typefields):
         prob_sid = prob_types[attrs[typefields[1]].upper()]
 
     except KeyError:
-        if attrs[typefields[1]].strip() == '':
-            return 'WARNING: No problem type provided. Record {} not exported.\n'.format(oid)
+        if attrs[typefields[1]].strip() == "":
+            return "WARNING: No problem type provided. Record {} not exported.\n".format(oid)
         else:
-            return 'WARNING: Problem type {} not found in Cityworks. Record {} not exported.\n'.format(attrs[typefields[1]], oid)
+            return "WARNING: Problem type {} not found in Cityworks. Record {} not exported.\n".format(attrs[typefields[1]], oid)
 
     except AttributeError:
-        return 'WARNING: Record {} not exported due to missing value in field {}\n'.format(oid, typefields[1])
+        return "WARNING: Record {} not exported due to missing value in field {}\n".format(oid, typefields[1])
 
     # Build dictionary of values to submit to CW
     values = {}
     for fieldset in fields:
         c_field, a_field = fieldset
         values[c_field] = str(attrs[a_field])
-    values["X"] = geometry['x']
-    values["Y"] = geometry['y']
+    values["X"] = geometry["x"]
+    values["Y"] = geometry["y"]
     values[typefields[0]] = prob_sid
 
     # Convert dict to pretty print json
-    json_data = six.moves.urllib.parse.quote(json.dumps(values, separators=(',', ':')))
+    json_data = six.moves.urllib.parse.quote(json.dumps(values, separators=(",", ":")))
 
     # Submit report to CityWorks. Encode chars
-    url = '{}/Services/AMS/ServiceRequest/Create?data={}&token={}'.format(baseUrl, json_data, cw_token)
+    url = "{}/Services/AMS/ServiceRequest/Create?data={}&token={}".format(baseUrl, json_data, cw_token)
     response = get_response(url)
 
-    return response['Value']['RequestId']
+    return response["Value"]["RequestId"]
 
 
 def copy_attachment(lyr, oid, requestid):
@@ -138,7 +138,7 @@ def copy_attachment(lyr, oid, requestid):
 
     for attachment in attachments:
         # download attachment
-        attpath = attachmentmgr.download(oid, attachment['id'])
+        attpath = attachmentmgr.download(oid, attachment["id"])
 
         # upload attachment
         # ***   TODO   ***
@@ -167,8 +167,8 @@ def copy_comments(lyr, pkey_fld, record, fkey_fld, fields, ids):
     for field in fields:
         values[field[0]] = record.attributes[field[1]]
 
-    json_data = six.moves.urllib.parse.quote(json.dumps(values, separators=(',', ':')))
-    url = '{}/Services/AMS/CustomerCall/AddToRequest?data={}&token={}'.format(baseUrl, json_data, cw_token)
+    json_data = six.moves.urllib.parse.quote(json.dumps(values, separators=(",", ":")))
+    url = "{}/Services/AMS/CustomerCall/AddToRequest?data={}&token={}".format(baseUrl, json_data, cw_token)
     response = get_response(url)
 
     return response
@@ -177,9 +177,9 @@ def copy_comments(lyr, pkey_fld, record, fkey_fld, fields, ids):
 def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields, tablefields, fc_flag, flag_values,
          ids, probtypes):
 
-    id_log = path.join(sys.path[0], 'cityworks_log.log')
-    with open(id_log, 'a') as log:
-        log.write('\n\n{}\n'.format(dt.now()))
+    id_log = path.join(sys.path[0], "cityworks_log.log")
+    with open(id_log, "a") as log:
+        log.write("\n\n{}\n".format(dt.now()))
 
         try:
             # Connect to org/portal
@@ -188,34 +188,34 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
             # Get token for CW
             status = get_cw_token(cwUser, cwPwd)
 
-            if 'error' in status:
-                log.write('Failed to get Cityworks token. {}\n'.format(status))
-                raise Exception('Failed to get Cityworks token.  {}'.format(status))
+            if "error" in status:
+                log.write("Failed to get Cityworks token. {}\n".format(status))
+                raise Exception("Failed to get Cityworks token.  {}".format(status))
 
             # get wkid
             sr = get_wkid()
 
-            if sr == 'error':
-                log.write('Spatial reference not defined\n')
-                raise Exception('Spatial reference not defined')
+            if sr == "error":
+                log.write("Spatial reference not defined\n")
+                raise Exception("Spatial reference not defined")
 
             # get problem types
             prob_types = get_problem_types()
 
-            if prob_types == 'error':
-                log.write('Problem types not defined\n')
-                raise Exception('Problem types not defined')
+            if prob_types == "error":
+                log.write("Problem types not defined\n")
+                raise Exception("Problem types not defined")
 
             for layer in layers:
                 lyr = FeatureLayer(layer, gis=gis)
                 oid_fld = lyr.properties.objectIdField
 
                 # Get related table URL
-                reltable = ''
+                reltable = ""
                 for relate in lyr.properties.relationships:
-                    url_pieces = layer.split('/')
-                    url_pieces[-1] = str(relate['relatedTableId'])
-                    table_url = '/'.join(url_pieces)
+                    url_pieces = layer.split("/")
+                    url_pieces[-1] = str(relate["relatedTableId"])
+                    table_url = "/".join(url_pieces)
 
                     if table_url in tables:
                         reltable = table_url
@@ -233,8 +233,8 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
                     requestid = submit_to_cw(row, prob_types, layerfields, oid, probtypes)
 
                     try:
-                        if 'WARNING' in requestid:
-                            log.write('Warning generated while copying record to Cityworks: {}\n'.format(requestid))
+                        if "WARNING" in requestid:
+                            log.write("Warning generated while copying record to Cityworks: {}\n".format(requestid))
                             continue
                         else:
                             pass  # requestID is str = ok
@@ -257,13 +257,13 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
                 # apply edits to updated features
                 if updated_rows:
                     status = lyr.edit_features(updates=updated_rows)
-                    log.write('Status of updates to ArcGIS layers: {}\n'.format(status))
+                    log.write("Status of updates to ArcGIS layers: {}\n".format(status))
 
                 # related records
                 rellyr = FeatureLayer(reltable, gis=gis)
 
-                pkey_fld = lyr.properties.relationships[0]['keyField']
-                fkey_fld = rellyr.properties.relationships[0]['keyField']
+                pkey_fld = lyr.properties.relationships[0]["keyField"]
+                fkey_fld = rellyr.properties.relationships[0]["keyField"]
                 sql = "{} IS NULL".format(fc_flag, None)
                 rel_records = rellyr.query(where=sql)
                 updated_rows = []
@@ -271,48 +271,48 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
                     response = copy_comments(lyr, pkey_fld, record, fkey_fld, tablefields, ids)
                     if response:
                         record.attributes[fc_flag] = flag_values[1]
-                        log.write('Status of updates to Cityworks comments: {}\n'.format(response))
+                        log.write("Status of updates to Cityworks comments: {}\n".format(response))
                         updated_rows.append(record)
 
                 # apply edits to updated records
                 if updated_rows:
                     status = rellyr.edit_features(updates=updated_rows)
-                    log.write('Status of updates to ArcGIS comments: {}\n'.format(status))
+                    log.write("Status of updates to ArcGIS comments: {}\n".format(status))
 
-                print('Done')
+                print("Done")
 
         except Exception as ex:
-            print('error: ' + str(ex))
+            print("error: " + str(ex))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     import sys
 
-    configfile = sys.argv[1]  # r'C:\Users\alli6394\Desktop\arcgis_cw_config.ini'
+    configfile = sys.argv[1]  # r"C:\Users\alli6394\Desktop\arcgis_cw_config.ini"
 
     config = configparser.ConfigParser()
     config.read(configfile)
 
     # Cityworks settings
-    baseUrl = config['cityworks']['url']
-    cwUser = config['cityworks']['username']
-    cwPwd = config['cityworks']['password']
+    baseUrl = config["cityworks"]["url"]
+    cwUser = config["cityworks"]["username"]
+    cwPwd = config["cityworks"]["password"]
 
     # ArcGIS Online/Portal settings
-    orgUrl = config['arcgis']['url']
-    username = config['arcgis']['username']
-    password = config['arcgis']['password']
+    orgUrl = config["arcgis"]["url"]
+    username = config["arcgis"]["username"]
+    password = config["arcgis"]["password"]
     # proxy_port = None
     # proxy_url = None
-    layers = [url for url in config['arcgis']['layers'].split(',')]
-    tables = [url for url in config['arcgis']['tables'].split(',')]
-    layerfields = [pair.split(',') for pair in config['fields']['layers'].split(';')]
-    tablefields = [pair.split(',') for pair in config['fields']['tables'].split(';')]
-    fc_flag = config['flag']['field']
-    flag_values = [config['flag']['on'], config['flag']['off']]
-    id_fields = [field for field in config['fields']['ids'].split(',')]
-    probtypes = [field for field in config['fields']['type'].split(',')]
+    layers = [url for url in config["arcgis"]["layers"].split(",")]
+    tables = [url for url in config["arcgis"]["tables"].split(",")]
+    layerfields = [pair.split(",") for pair in config["fields"]["layers"].split(";")]
+    tablefields = [pair.split(",") for pair in config["fields"]["tables"].split(";")]
+    fc_flag = config["flag"]["field"]
+    flag_values = [config["flag"]["on"], config["flag"]["off"]]
+    id_fields = [field for field in config["fields"]["ids"].split(",")]
+    probtypes = [field for field in config["fields"]["type"].split(",")]
 
     main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields, tablefields, fc_flag, flag_values,
          id_fields, probtypes)
