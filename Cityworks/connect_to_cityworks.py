@@ -28,37 +28,35 @@ from arcgis.gis import GIS  # , Group, Layer
 from arcgis.features import FeatureLayer  # , Table
 from arcgis.features.managers import AttachmentManager
 
+import requests
 import configparser
 import json
-import six
 from os import path, sys, remove
 from datetime import datetime as dt
 
 cw_token = ""
 
 
-def get_response(url):
-    http_response = six.moves.urllib.request.urlopen(url)
-    decoded = http_response.read().decode("utf-8")
-
-    return json.loads(decoded.strip())
+def get_response(url, params):
+    response = requests.get(url, params=params)
+    return json.loads(response.text)
 
 
 def get_cw_token(user, pwd):
-    """Retrieve a token for CityWorks access"""
+    """Retrieve a token for Cityworks access"""
     data = {"LoginName": user, "Password": pwd}
-    json_data = six.moves.urllib.parse.quote(json.dumps(data, separators=(",", ":")))
-    url = "{}/Services/authentication/authenticate?data={}".format(baseUrl, json_data)
+    json_data = json.dumps(data, separators=(",", ":"))
+    params = {"data": json_data}
+    url = "{}/Services/authentication/authenticate".format(baseUrl)
 
-    response = get_response(url)
+    response = get_response(url, params)
 
-    if response == "error":
+    if response["Status"] is not 0:
         return "error: {}: {}".format(response["Status"],
                                       response["Message"])
-
-    elif response["Status"] == 0:
+    else:
         global cw_token
-        cw_token = six.moves.urllib.parse.quote(response["Value"]["Token"])
+        cw_token = response["Value"]["Token"]
 
         return "success"
 
@@ -66,8 +64,10 @@ def get_cw_token(user, pwd):
 def get_wkid():
     """Retrieve the WKID of the cityworks layers"""
 
-    url = "{}/Services/AMS/Preferences/User?token={}".format(baseUrl, cw_token)
-    response = get_response(url)
+    params = {"token": cw_token}
+    url = "{}/Services/AMS/Preferences/User".format(baseUrl)
+
+    response = get_response(url, params)
 
     try:
         return response["Value"]["SpatialReference"]
@@ -80,11 +80,13 @@ def get_problem_types():
     """Retrieve a dict of problem types from cityworks"""
 
     data = {"ForPublicOnly": "true"}
-    json_data = six.moves.urllib.parse.quote(json.dumps(data, separators=(",", ":")))
-    url = "{}/Services/AMS/ServiceRequest/Problems?data={}&token={}".format(baseUrl, json_data, cw_token)
+    json_data = json.dumps(data, separators=(",", ":"))
+    params = {"data": json_data, "token": cw_token}
+    url = "{}/Services/AMS/ServiceRequest/Problems".format(baseUrl)
 
     try:
-        response = get_response(url)
+        response = get_response(url, params)
+
         values = {}
         for val in response["Value"]:
             values[val["ProblemCode"].upper()] = int(val["ProblemSid"])
@@ -122,56 +124,60 @@ def submit_to_cw(row, prob_types, fields, oid, typefields):
     values[typefields[0]] = prob_sid
 
     # Convert dict to pretty print json
-    json_data = six.moves.urllib.parse.quote(json.dumps(values, separators=(",", ":")))
+    json_data = json.dumps(values, separators=(",", ":"))
+    params = {"data": json_data, "token": cw_token}
 
-    # Submit report to CityWorks. Encode chars
-    url = "{}/Services/AMS/ServiceRequest/Create?data={}&token={}".format(baseUrl, json_data, cw_token)
-    response = get_response(url)
-
-    return response["Value"]["RequestId"]
-
-
-def copy_attachment(lyr, oid, requestid):
-
-    attachmentmgr = AttachmentManager(lyr)
-    attachments = attachmentmgr.get_list(oid)
-
-    for attachment in attachments:
-        # download attachment
-        attpath = attachmentmgr.download(oid, attachment["id"])
-
-        # upload attachment
-        # ***   TODO   ***
-
-        # delete downloaded file
-        remove(attpath)
-
-        # return response
-
-
-def copy_comments(lyr, pkey_fld, record, fkey_fld, fields, ids):
+    # Submit report to Cityworks.
+    url = "{}/Services/AMS/ServiceRequest/Create".format(baseUrl)
+    response = get_response(url, params)
 
     try:
-        sql = "{} = '{}'".format(pkey_fld, record.attributes[fkey_fld])
-        parents = lyr.query(where=sql)
+        return response['Value']['RequestId']
 
-    except Exception:
-        sql = "{} = '{}'".format(pkey_fld, record.attributes[fkey_fld])
-        parents = lyr.query(where=sql)
+    except KeyError:
+        return "error"
 
-    parent = parents.features[0]
-    if not parent.attributes[ids[1]]:
-        return ""
+
+def copy_attachment(attachmentmgr, attachment, oid, requestid):
+
+    # download attachment
+    attpath = attachmentmgr.download(oid, attachment["id"])
+
+    # upload attachment
+    file = open(attpath, "rb")
+    data = {"RequestId": requestid}
+    json_data = json.dumps(data, separators=(",", ":"))
+    params = {"token": cw_token, "data": json_data}
+    files = {"file": (path.basename(attpath), file)}
+    url = "{}/Services/AMS/Attachments/AddRequestAttachment".format(baseUrl)
+    response = requests.post(url, files=files, data=params)
+
+    # delete downloaded file
+    file.close()
+    remove(attpath)
+
+    return json.loads(response.text)
+
+
+def copy_comments(record, parent, fields, ids):
 
     values = {id_fields[0]: parent.attributes[ids[1]]}
     for field in fields:
         values[field[0]] = record.attributes[field[1]]
 
-    json_data = six.moves.urllib.parse.quote(json.dumps(values, separators=(",", ":")))
-    url = "{}/Services/AMS/CustomerCall/AddToRequest?data={}&token={}".format(baseUrl, json_data, cw_token)
-    response = get_response(url)
+    json_data = json.dumps(values, separators=(",", ":"))
+    params = {"data": json_data, "token": cw_token}
+    url = "{}/Services/AMS/CustomerCall/AddToRequest".format(baseUrl)
+    response = get_response(url, params)
 
     return response
+
+
+def get_parent(lyr, pkey_fld, record, fkey_fld):
+
+    sql = "{} = '{}'".format(pkey_fld, record.attributes[fkey_fld])
+    parents = lyr.query(where=sql)
+    return parents.features[0]
 
 
 def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields, tablefields, fc_flag, flag_values,
@@ -233,8 +239,8 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
                     requestid = submit_to_cw(row, prob_types, layerfields, oid, probtypes)
 
                     try:
-                        if "WARNING" in requestid:
-                            log.write("Warning generated while copying record to Cityworks: {}\n".format(requestid))
+                        if 'WARNING' in requestid:
+                            log.write('Warning generated while copying record to Cityworks: {}\n'.format(requestid))
                             continue
                         else:
                             pass  # requestID is str = ok
@@ -242,8 +248,13 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
                         pass  # requestID is a number = ok
 
                     # attachments
-                    # response = copy_attachment(lyr, oid, requestid)
-                    # print(response)
+                    attachmentmgr = AttachmentManager(lyr)
+                    attachments = attachmentmgr.get_list(oid)
+
+                    for attachment in attachments:
+                        response = copy_attachment(attachmentmgr, attachment, oid, requestid)
+                        if response['Status'] is not 0:
+                            log.write('Error while copying attachment to Cityworks: {}\n'.format(response['ErrorMessages']))
 
                     # update the record in the service so that it evaluates falsely against sql
                     row.attributes[fc_flag] = flag_values[1]
@@ -268,8 +279,22 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
                 rel_records = rellyr.query(where=sql)
                 updated_rows = []
                 for record in rel_records:
-                    response = copy_comments(lyr, pkey_fld, record, fkey_fld, tablefields, ids)
-                    if response:
+                    rel_oid = record.attributes[oid_fld]
+                    parent = get_parent(lyr, pkey_fld, record, fkey_fld)
+
+                    # Upload comment attachments
+                    attachmentmgr = AttachmentManager(rellyr)
+                    attachments = attachmentmgr.get_list(rel_oid)
+                    for attachment in attachments:
+                        response = copy_attachment(attachmentmgr, attachment, rel_oid, parent.attributes[ids[1]])
+                        if response['Status'] is not 0:
+                            log.write('Error while copying attachment to Cityworks: {}\n'.format(response['ErrorMessages']))
+
+                    # Process comments
+                    response = copy_comments(record, parent, tablefields, ids)
+                    if response['Status'] is not 0:
+                        log.write('Error while copying comment to Cityworks: {}\n'.format(response['ErrorMessages']))
+                    else:
                         record.attributes[fc_flag] = flag_values[1]
                         log.write("Status of updates to Cityworks comments: {}\n".format(response))
                         updated_rows.append(record)
@@ -279,7 +304,7 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
                     status = rellyr.edit_features(updates=updated_rows)
                     log.write("Status of updates to ArcGIS comments: {}\n".format(status))
 
-                print("Done")
+                print("Finished processing: {}".format(lyr.properties["name"]))
 
         except Exception as ex:
             print("error: " + str(ex))
