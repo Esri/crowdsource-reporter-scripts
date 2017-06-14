@@ -29,7 +29,6 @@ from arcgis.features import FeatureLayer  # , Table
 from arcgis.features.managers import AttachmentManager
 
 import requests
-import configparser
 import json
 from os import path, sys, remove
 from datetime import datetime as dt
@@ -318,8 +317,8 @@ if __name__ == "__main__":
 
     configfile = sys.argv[1]  # r"C:\Users\alli6394\Desktop\arcgis_cw_config.ini"
 
-    config = configparser.ConfigParser()
-    config.read(configfile)
+    with open(configfile) as configreader:
+        config = json.load(configreader)
 
     # Cityworks settings
     baseUrl = config["cityworks"]["url"]
@@ -330,16 +329,14 @@ if __name__ == "__main__":
     orgUrl = config["arcgis"]["url"]
     username = config["arcgis"]["username"]
     password = config["arcgis"]["password"]
-    # proxy_port = None
-    # proxy_url = None
-    layers = [url for url in config["arcgis"]["layers"].split(",")]
-    tables = [url for url in config["arcgis"]["tables"].split(",")]
-    layerfields = [pair.split(",") for pair in config["fields"]["layers"].split(";")]
-    tablefields = [pair.split(",") for pair in config["fields"]["tables"].split(";")]
+    layers = config["arcgis"]["layers"]
+    tables = config["arcgis"]["tables"]
+    layerfields = config["fields"]["layers"]
+    tablefields = config["fields"]["tables"]
     fc_flag = config["flag"]["field"]
     flag_values = [config["flag"]["on"], config["flag"]["off"]]
-    id_fields = [field for field in config["fields"]["ids"].split(",")]
-    probtypes = [field for field in config["fields"]["type"].split(",")]
+    id_fields = config["fields"]["ids"]
+    probtypes = config["fields"]["type"]
 
     main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields, tablefields, fc_flag, flag_values,
          id_fields, probtypes)
