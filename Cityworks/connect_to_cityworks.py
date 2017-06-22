@@ -257,13 +257,15 @@ def main(cwUser, cwPwd, orgUrl, username, password, layers, tables, layerfields,
                             log.write('Error while copying attachment to Cityworks: {}\n'.format(response['ErrorMessages']))
 
                     # update the record in the service so that it evaluates falsely against sql
-                    row.attributes[fc_flag] = flag_values[1]
+                    sql = "{}='{}'".format(oid_fld, oid)
+                    row_orig = lyr.query(where=sql).features[0]
+                    row_orig.attributes[fc_flag] = flag_values[1]
                     try:
-                        row.attributes[ids[1]] = requestid
+                        row_orig.attributes[ids[1]] = requestid
                     except TypeError:
-                        row.attributes[ids[1]] = str(requestid)
+                        row_orig.attributes[ids[1]] = str(requestid)
 
-                    updated_rows.append(row)
+                    updated_rows.append(row_orig)
 
                 # apply edits to updated features
                 if updated_rows:
