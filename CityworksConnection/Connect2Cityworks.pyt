@@ -28,13 +28,8 @@ import arcpy
 from arcgis.gis import GIS, Group, Layer
 from arcgis.mapping import WebMap
 from arcgis.features import FeatureLayer, Table
-#from arcgis.features.managers import AttachmentManager
 
-import configparser
-#import json
-#import six
-#from os import path, sys, remove
-#from datetime import datetime as dt
+import json
 
 cityworksfields = ['AcctNum', 'Address', 'Answers', 'AptNum', 'CallerAcctNum', 'CallerAddress', 'CallerAptNum', 'CallerCallTime', 'CallerCellPhone', 'CallerCity', 'CallerComments', 'CallerDistrict', 'CallerEmail', 'CallerFax', 'CallerFirstName', 'CallerHomePhone', 'CallerIsFollowUpCall', 'CallerIsOwner', 'CallerLastName', 'CallerMiddleInitial', 'CallerOtherPhone', 'CallerState', 'CallerText1', 'CallerText2', 'CallerText3', 'CallerText4', 'CallerText5', 'CallerTitle', 'CallerType', 'CallerWorkPhone', 'CallerZip', 'Ccx', 'Ccy', 'CellPhone', 'City', 'Comments', 'CustAddType', 'CustAddress', 'CustCallback', 'CustCity', 'CustContact', 'CustDistrict', 'CustState', 'CustZip', 'CustomFieldValues', 'Date1', 'Date2', 'Date3', 'Date4', 'Date5', 'DateTimeCall', 'DateTimeCallback', 'DateTimeContact', 'Details', 'DispatchToSid', 'DispatchToUseDispatchToSid', 'District', 'Email', 'EmployeeSid', 'Fax', 'FirstName', 'HomePhone', 'InitiatedByApp', 'IsFollowUpCall', 'IsResident', 'Landmark', 'LastName', 'Location', 'MapPage', 'MiddleInitial', 'Num1', 'Num2', 'Num3', 'Num4', 'Num5', 'OtherPhone', 'OtherSystemId', 'Priority', 'ProbDetails', 'ProblemSid', 'RequestId', 'Shop', 'State', 'StreetName', 'SubmitToSid', 'SubmitToUseSubmitToSid', 'Text1', 'Text10', 'Text11', 'Text12', 'Text13', 'Text14', 'Text15', 'Text16', 'Text17', 'Text18', 'Text19', 'Text2', 'Text20', 'Text3', 'Text4', 'Text5', 'Text6', 'Text7', 'Text8', 'Text9', 'TileNo', 'Title', 'WorkPhone', 'X', 'Y', 'Zip']
 
@@ -462,12 +457,12 @@ class Tool(object):
         """The source code of the tool."""
         portal_url, portal_user, portal_pw, cw_url, cw_user, cw_pw, group, flayers, cw_id, report_id, cw_probtype, report_type, flag_fld, flag_on, flag_off, fl_flds, ftables, tb_flds, config_path = parameters
 
-        layer_urls = ','.join([item.split(' ')[-1][1:-2] for item in str(flayers.value).split(';')])
-        table_urls = ','.join([item.split(' ')[-1][1:-2] for item in str(ftables.value).split(';')])
+        layer_urls = [item.split(' ')[-1][1:-2] for item in str(flayers.value).split(';')]
+        table_urls = [item.split(' ')[-1][1:-2] for item in str(ftables.value).split(';')]
+        layer_fields = [[field[1], field[0]] for field in fl_flds.value]
+        table_fields = [[field[1], field[0]] for field in tb_flds.value]
 
-        #group_id = group.value.split(" ")[-1][1:-1]
-
-        cfg = configparser.ConfigParser()
+        cfg = {}
         cfg['cityworks'] = {'url': cw_url.value,
                             'username': cw_user.value,
                             'password': cw_pw.value}
@@ -476,15 +471,14 @@ class Tool(object):
                          'password': portal_pw.value,
                          'layers': layer_urls,
                          'tables': table_urls}
-
-        cfg['fields'] = {'layers': ';'.join(['{},{}'.format(field[1], field[0]) for field in fl_flds.value]),
-                         'tables': ';'.join(['{},{}'.format(field[1], field[0]) for field in tb_flds.value]),
-                         'ids': '{},{}'.format(cw_id.value, report_id.value),
-                         'type': '{},{}'.format(cw_probtype.value, report_type.value)}
+        cfg['fields'] = {'layers': layer_fields,
+                         'tables': table_fields,
+                         'ids': [cw_id.value, report_id.value],
+                         'type': [cw_probtype.value, report_type.value]}
         cfg['flag'] = {'field': flag_fld.value,
                        'on': flag_on.value,
                        'off': flag_off.value}
         with open(config_path.valueAsText, 'w') as cfgfile:
-            cfg.write(cfgfile)
+            json.dump(cfg, cfgfile, indent=4)
 
         return
