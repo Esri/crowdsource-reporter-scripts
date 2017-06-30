@@ -1,36 +1,58 @@
 # crowdsource-reporter-scripts
-Scripts that can be used to extend the functionality of the Crowdsource Reporter web app template
+This repository contains a series of tools that can be used to extend the functionality of editable feature layers published to an ArcGIS Online organization or an ArcGIS portal. The scripts can be scheduled using an application such as Windows Tasks to scan the feature layers for new content.
 
 [New to Github? Get started here.]: http://htmlpreview.github.com/?https://github.com/Esri/esri.github.com/blob/master/help/esri-getting-to-know-github.html
-[Want more info on this app? Check out the documentation.]: http://solutions.arcgis.com/local-government/help/crowdsource-reporter/
-[ArcGISDesktop]: http://www.esri.com/software/arcgis/arcgis-for-desktop
-[ArcGISServer]: http://www.esri.com/software/arcgis/arcgisserver
 [ArcGIS for Local Government maps and apps]: http://solutions.arcgis.com/local-government
 [Local Government GitHub repositories]: http://esri.github.io/#Local-Government
 [guidelines for contributing]: https://github.com/esri/contributing
 [LICENSE]: https://github.com/ArcGIS/crowdsource-reporter-scripts/blob/master/LICENSE.txt
-
-## Features
-
-* A script to filter features based on lists of explicit and sensitive words. The script updates a flag field when a word on these lists is detected so that the feature no longer meets the requirements of a filter on a layer in a web map. The script also compares words against a list of good words to avoid accidental filtering.
-* A script to generate identifiers for features based on a defined sequence and that increment based on a defined interval.
-
-## Requirements
-
-### Experience
-
-* Authoring maps
-* Configuring ArcGIS Online/Portal web app templates
-
-### Software
-* ArcGIS Online subscription or ArcGIS Portal
+[Automated Moderation]: http://solutions.arcgis.com/local-government/help/crowdsource-reporter/get-started/automated-moderation/
+[Generate IDs]: http://solutions.arcgis.com/local-government/help/crowdsource-reporter/get-started/generate-ids/
+[Email Notifications]: http://solutions.arcgis.com/local-government/help/crowdsource-reporter/get-started/email-notification/
+[Download a supported version of the Automated Moderation script here]: http://links.esri.com/localgovernment/download/AutomatedModerationScript/
+[Download a supported version of the Email Notification script here]: http://links.esri.com/localgovernment/download/EmailNotificationScript/
+[Download a supported version of the Generate IDs script here]: http://links.esri.com/localgovernment/download/GenerateIDScript/
 
 
-## Instructions
 
-### General Help
+## Automated Moderation
+
+A script to filter features based on lists of explicit and sensitive words. The script updates a flag field when a word on these lists is detected so that the feature no longer meets the requirements of a filter on a layer in a web map. The script also compares words against a list of good words to avoid accidental filtering.
+
+##### Requirements
+Python 2.7, ArcPy
+
+##### Configuration
+For more information on configuring this script, see the documentation: [Automated Moderation][]
+
+[Download a supported version of the Automated Moderation script here][]
+
+## Generate IDs
+
+A script to generate identifiers for features based on a defined sequence and that increment based on a defined interval.
+
+##### Requirements
+Python 2.7, ArcPy
+##### Configuration
+For more information on configuring this script, see the documentation: [Generate IDs][]
+
+[Download a supported version of the Generate IDs script here][]
+
+## Email Notifications
+
+Send emails to specific email addresses, or to addresses in fields in the data. Multiple messages can be configured for each layer based on attribute values. The script updates a flag field to indicate that each message has been sent.
+
+##### Requirements
+Python 3, ArcGIS API for Python
+
+##### Configuration
+For more information on configuring this script, see the documentation: [Email Notifications][]
+
+[Download a supported version of the Email Notification script here][]
+
+
+## General Help
 * [New to Github? Get started here.][]
-* [Want more info on this app? Check out the documentation.][]
 
 ## Resources
 
