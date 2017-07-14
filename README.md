@@ -57,6 +57,7 @@ A script to pass data from editable ArcGIS feature layers to Cityworks tables, i
 The script assumes that the data is being collected using the Crowdsource Reporter application. For input, it requires the group containing the maps that are visible in the Crowdsource Reporter app.
 
 ##### Requirements
+ArcGIS Pro 1.4, 1.4.1, 2.0, Python 3.5, ArcGIS API for Python
 
 ##### Configuration
 1. If not previously installed, use the Python Package Manager in ArcGIS Pro to install the ArcGIS API for Python (package name: arcgis)
