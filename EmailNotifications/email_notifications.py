@@ -16,6 +16,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# Update 7/17/2017: corrected SQL syntax in comments
+
 # ------------------------------------------------------------------------------
 from os import path, sys
 from datetime import datetime as dt
@@ -40,10 +42,10 @@ reply_to = ''
 # Each service can have multiple messages
 #   service url: URL of the AGOL/Portal service layer (including index number)
 #   query: SQL where clause used to identify which features require each message.
-#           For example, use "'STATUS' = 'Submitted' AND 'PRIORITY' = 1" to only send this message for reports that have
+#           For example, use "STATUS = 'Submitted' AND PRIORITY = 1" to only send this message for reports that have
 #           both the value 'Submitted' in the text field 'STATUS' and the value 1 in the numeric field 'PRIORITY'.
 #           *** Pay close attention to the use of double quotes to surround the entire clause, single quotes around the
-#           field names and text field values, and no quotes around values from numeric fields.
+#           text field values, and no quotes around values from numeric fields.
 #           All field names and values are case-sensitive.***
 #   email address: E-mail address, or name of the field containing the email address, where the notification should be sent.
 #   email body template: Relative path to html to include in the body of the e-mail sent to the user.
