@@ -86,6 +86,13 @@ class Tool(object):
             parameterType="Required",
             direction="Input"
         )
+        cw_cwol = arcpy.Parameter(
+            displayName="Cityworks Online Site?",
+            name="cityworks_cwol",
+            datatype="GPBoolean",
+            parameterType="Required",
+            direction="Input"
+        )
         portal_url = arcpy.Parameter(
             displayName="ArcGIS URL",
             name="portal_url",
@@ -203,6 +210,8 @@ class Tool(object):
             direction="Output"
         )
 
+        cw_cwol.value = False
+
         group.filter.type = 'ValueList'
         group.filter.list = ['Provide ArcGIS credentials to see group list']
 
@@ -239,7 +248,7 @@ class Tool(object):
         report_type.filter.type = 'ValueList'
         report_type.filter.list = ['Select layers to see field list']
 
-        params = [portal_url, portal_user, portal_pw, cw_url, cw_user, cw_pw, group, flayers, cw_id, report_id,
+        params = [portal_url, portal_user, portal_pw, cw_url, cw_user, cw_pw, cw_cwol, group, flayers, cw_id, report_id,
                   cw_probtype, report_type, flag_fld, flag_on, flag_off, fl_flds, ftables, tb_flds, config_path]
 
         return params
@@ -253,7 +262,7 @@ class Tool(object):
         validation is performed.  This method is called whenever a parameter
         has been changed."""
 
-        portal_url, portal_user, portal_pw, cw_url, cw_user, cw_pw, group, flayers, cw_id, report_id, cw_probtype, report_type, flag_fld, flag_on, flag_off, fl_flds, ftables, tb_flds, config_path = parameters
+        portal_url, portal_user, portal_pw, cw_url, cw_user, cw_pw, cw_cwol, group, flayers, cw_id, report_id, cw_probtype, report_type, flag_fld, flag_on, flag_off, fl_flds, ftables, tb_flds, config_path = parameters
 
         global agol_user
         global agol_pass
@@ -455,7 +464,7 @@ class Tool(object):
 
     def execute(self, parameters, messages):
         """The source code of the tool."""
-        portal_url, portal_user, portal_pw, cw_url, cw_user, cw_pw, group, flayers, cw_id, report_id, cw_probtype, report_type, flag_fld, flag_on, flag_off, fl_flds, ftables, tb_flds, config_path = parameters
+        portal_url, portal_user, portal_pw, cw_url, cw_user, cw_pw, cw_cwol, group, flayers, cw_id, report_id, cw_probtype, report_type, flag_fld, flag_on, flag_off, fl_flds, ftables, tb_flds, config_path = parameters
 
         layer_urls = [item.split(' ')[-1][1:-2] for item in str(flayers.value).split(';')]
         table_urls = [item.split(' ')[-1][1:-2] for item in str(ftables.value).split(';')]
@@ -465,7 +474,8 @@ class Tool(object):
         cfg = {}
         cfg['cityworks'] = {'url': cw_url.value,
                             'username': cw_user.value,
-                            'password': cw_pw.value}
+                            'password': cw_pw.value,
+                            'isCWOL': cw_cwol.value}
         cfg['arcgis'] = {'url': portal_url.value,
                          'username': portal_user.value,
                          'password': portal_pw.value,

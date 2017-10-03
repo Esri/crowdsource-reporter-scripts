@@ -42,8 +42,21 @@ def get_response(url, params):
     return json.loads(response.text)
 
 
-def get_cw_token(user, pwd):
+def get_cw_token(user, pwd, isCWOL):
     """Retrieve a token for Cityworks access"""
+    if isCWOL:
+        data = {"LoginName": user, "Password": pwd}
+        json_data = json.dumps(data, separators=(",", ":"))
+        params = {"data": json_data}
+        url = "https://login.cityworksonline.com/Services/authentication/CityworksOnlineAuthenticate"
+
+        response = get_response(url, params)
+
+        if response["Status"] is not 0:
+            return "error: {}: {}".format(response["Status"],
+                                          response["Message"])
+        else:
+            pwd = response["Value"]["Token"]
     data = {"LoginName": user, "Password": pwd}
     json_data = json.dumps(data, separators=(",", ":"))
     params = {"data": json_data}
@@ -187,6 +200,7 @@ def main(event, context):
     baseUrl = event["cityworks"]["url"]
     cwUser = event["cityworks"]["username"]
     cwPwd = event["cityworks"]["password"]
+    isCWOL = event["cityworks"].get("isCWOL", False)
 
     # ArcGIS Online/Portal settings
     orgUrl = event["arcgis"]["url"]
@@ -212,7 +226,7 @@ def main(event, context):
         gis = GIS(orgUrl, username, password)
 
         # Get token for CW
-        status = get_cw_token(cwUser, cwPwd)
+        status = get_cw_token(cwUser, cwPwd, isCWOL)
 
         if "error" in status:
             if log_to_file:
