@@ -221,6 +221,10 @@ def main(event, context):
         log = open(id_log, "a")
         log.write("\n\n{}\n".format(dt.now()))
 
+    if log_to_file:
+        log.write("Sending reports to: {}\n".format(baseUrl))
+    else:
+        print("Sending reports to: {}".format(baseUrl))
     try:
         # Connect to org/portal
         gis = GIS(orgUrl, username, password)
@@ -232,7 +236,7 @@ def main(event, context):
             if log_to_file:
                 log.write("Failed to get Cityworks token. {}\n".format(status))
             else:
-                print("Failed to get Cityworks token. {}\n".format(status))
+                print("Failed to get Cityworks token. {}".format(status))
             raise Exception("Failed to get Cityworks token.  {}".format(status))
 
         # get wkid
@@ -242,7 +246,7 @@ def main(event, context):
             if log_to_file:
                 log.write("Spatial reference not defined\n")
             else:
-                print("Spatial reference not defined\n")
+                print("Spatial reference not defined")
             raise Exception("Spatial reference not defined")
 
         # get problem types
@@ -252,7 +256,7 @@ def main(event, context):
             if log_to_file:
                 log.write("Problem types not defined\n")
             else:
-                print("Problem types not defined\n")
+                print("Problem types not defined")
             raise Exception("Problem types not defined")
 
         for layer in layers:
@@ -286,7 +290,7 @@ def main(event, context):
                         if log_to_file:
                             log.write("Warning generated while copying record to Cityworks: {}\n".format(requestid))
                         else:
-                            print("Warning generated while copying record to Cityworks: {}\n".format(requestid))
+                            print("Warning generated while copying record to Cityworks: {}".format(requestid))
                         continue
                     else:
                         pass  # requestID is str = ok
@@ -303,7 +307,7 @@ def main(event, context):
                         if log_to_file:
                             log.write("Error while copying attachment to Cityworks: {}\n".format(response["ErrorMessages"]))
                         else:
-                            print("Error while copying attachment to Cityworks: {}\n".format(response["ErrorMessages"]))
+                            print("Error while copying attachment to Cityworks: {}".format(response["ErrorMessages"]))
 
                 # update the record in the service so that it evaluates falsely against sql
                 sql = "{}='{}'".format(oid_fld, oid)
@@ -322,7 +326,7 @@ def main(event, context):
                 if log_to_file:
                     log.write("Status of updates to ArcGIS layers: {}\n".format(status))
                 else:
-                    print("Status of updates to ArcGIS layers: {}\n".format(status))
+                    print("Status of updates to ArcGIS layers: {}".format(status))
 
             # related records
             rellyr = FeatureLayer(reltable, gis=gis)
@@ -345,7 +349,7 @@ def main(event, context):
                         if log_to_file:
                             log.write("Error while copying attachment to Cityworks: {}\n".format(response["ErrorMessages"]))
                         else:
-                            print("Error while copying attachment to Cityworks: {}\n".format(response["ErrorMessages"]))
+                            print("Error while copying attachment to Cityworks: {}".format(response["ErrorMessages"]))
 
                 # Process comments
                 response = copy_comments(record, parent, tablefields, ids)
@@ -353,13 +357,13 @@ def main(event, context):
                     if log_to_file:
                         log.write("Error while copying comment to Cityworks: {}\n".format(response["ErrorMessages"]))
                     else:
-                        print("Error while copying comment to Cityworks: {}\n".format(response["ErrorMessages"]))
+                        print("Error while copying comment to Cityworks: {}".format(response["ErrorMessages"]))
                 else:
                     record.attributes[fc_flag] = flag_values[1]
                     if log_to_file:
                         log.write("Status of updates to Cityworks comments: {}\n".format(response))
                     else:
-                        print("Status of updates to Cityworks comments: {}\n".format(response))
+                        print("Status of updates to Cityworks comments: {}".format(response))
                     updated_rows.append(record)
 
             # apply edits to updated records
@@ -368,7 +372,7 @@ def main(event, context):
                 if log_to_file:
                     log.write("Status of updates to ArcGIS comments: {}\n".format(status))
                 else:
-                    print("Status of updates to ArcGIS comments: {}\n".format(status))
+                    print("Status of updates to ArcGIS comments: {}".format(status))
 
             print("Finished processing: {}".format(lyr.properties["name"]))
 
