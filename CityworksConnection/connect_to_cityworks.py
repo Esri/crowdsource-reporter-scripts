@@ -120,12 +120,16 @@ def submit_to_cw(row, prob_types, fields, oid, typefields):
 
     except KeyError:
         if attrs[typefields[1]].strip() == "":
-            return "WARNING: No problem type provided. Record {} not exported.\n".format(oid)
+            msg = "WARNING: No problem type provided. Record {} not exported.".format(oid)
+            return msg
         else:
-            return "WARNING: Problem type {} not found in Cityworks. Record {} not exported.\n".format(attrs[typefields[1]], oid)
+            ptype = attrs[typefields[1]]
+            msg = "WARNING: Problem type {} not found in Cityworks. Record {} not exported.".format(ptype, oid)
+            return msg
 
     except AttributeError:
-        return "WARNING: Record {} not exported due to missing value in field {}\n".format(oid, typefields[1])
+        msg = "WARNING: Record {} not exported due to missing value in field {}".format(oid, typefields[1])
+        return msg
 
     # Build dictionary of values to submit to CW
     values = {}
@@ -147,8 +151,11 @@ def submit_to_cw(row, prob_types, fields, oid, typefields):
     try:
         return response["Value"]["RequestId"]
 
-    except KeyError:
-        return "error"
+    except TypeError:
+        try:
+            return 'error: {}'.format(response['ErrorMessages'])
+        except KeyError:
+            return 'error: {}'.format(response['Message'])
 
 
 def copy_attachment(attachmentmgr, attachment, oid, requestid):
@@ -181,9 +188,12 @@ def copy_comments(record, parent, fields, ids):
     json_data = json.dumps(values, separators=(",", ":"))
     params = {"data": json_data, "token": cw_token}
     url = "{}/Services/AMS/CustomerCall/AddToRequest".format(baseUrl)
-    response = get_response(url, params)
+    try:
+        response = get_response(url, params)
+        return response
 
-    return response
+    except json.decoder.JSONDecodeError:
+        return 'error'
 
 
 def get_parent(lyr, pkey_fld, record, fkey_fld):
@@ -219,7 +229,10 @@ def main(event, context):
         from datetime import datetime as dt
         id_log = path.join(sys.path[0], "cityworks_log.log")
         log = open(id_log, "a")
-        log.write("\n\n{}\n".format(dt.now()))
+        log.write("\n{} ".format(dt.now()))
+        log.write("Sending reports to: {}\n".format(baseUrl))
+    else:
+        print("Sending reports to: {}".format(baseUrl))
 
     try:
         # Connect to org/portal
@@ -258,6 +271,7 @@ def main(event, context):
         for layer in layers:
             lyr = FeatureLayer(layer, gis=gis)
             oid_fld = lyr.properties.objectIdField
+            lyrname = lyr.properties["name"]
 
             # Get related table URL
             reltable = ""
@@ -279,14 +293,24 @@ def main(event, context):
                 oid = row.attributes[oid_fld]
 
                 # Submit feature to the Cityworks database
-                requestid = submit_to_cw(row, prob_types, layerfields, oid, probtypes)
+                reqid = submit_to_cw(row, prob_types, layerfields, oid, probtypes)
 
                 try:
-                    if "WARNING" in requestid:
+                    if "WARNING" in reqid:
+                        msg = "Warning generated while copying record from layer {} to Cityworks: {}\n".format(lyrname,
+                                                                                                               reqid)
                         if log_to_file:
-                            log.write("Warning generated while copying record to Cityworks: {}\n".format(requestid))
+                            log.write(msg)
                         else:
-                            print("Warning generated while copying record to Cityworks: {}\n".format(requestid))
+                            print(msg)
+                        continue
+                    elif 'error' in reqid:
+                        msg = "Error generated while copying record from layer {} to Cityworks: {}\n".format(lyrname,
+                                                                                                             reqid)
+                        if log_to_file:
+                            log.write(msg)
+                        else:
+                            print(msg)
                         continue
                     else:
                         pass  # requestID is str = ok
@@ -294,25 +318,36 @@ def main(event, context):
                     pass  # requestID is a number = ok
 
                 # attachments
-                attachmentmgr = AttachmentManager(lyr)
-                attachments = attachmentmgr.get_list(oid)
+                try:
+                    attachmentmgr = AttachmentManager(lyr)
+                    attachments = attachmentmgr.get_list(oid)
 
-                for attachment in attachments:
-                    response = copy_attachment(attachmentmgr, attachment, oid, requestid)
-                    if response["Status"] is not 0:
-                        if log_to_file:
-                            log.write("Error while copying attachment to Cityworks: {}\n".format(response["ErrorMessages"]))
-                        else:
-                            print("Error while copying attachment to Cityworks: {}\n".format(response["ErrorMessages"]))
+                    for attachment in attachments:
+                        response = copy_attachment(attachmentmgr, attachment, oid, reqid)
+                        if response["Status"] is not 0:
+                            try:
+                                error = response["ErrorMessages"]
+                            except KeyError:
+                                error = response["Message"]
+
+                            msg = "Error copying attachment from feature {} in layer {}: {}\n".format(oid,
+                                                                                                      lyrname,
+                                                                                                      error)
+                            if log_to_file:
+                                log.write(msg)
+                            else:
+                                print(msg)
+                except RuntimeError:
+                    pass  # feature layer doesn't support attachments
 
                 # update the record in the service so that it evaluates falsely against sql
                 sql = "{}='{}'".format(oid_fld, oid)
                 row_orig = lyr.query(where=sql).features[0]
                 row_orig.attributes[fc_flag] = flag_values[1]
                 try:
-                    row_orig.attributes[ids[1]] = requestid
+                    row_orig.attributes[ids[1]] = reqid
                 except TypeError:
-                    row_orig.attributes[ids[1]] = str(requestid)
+                    row_orig.attributes[ids[1]] = str(reqid)
 
                 updated_rows.append(row_orig)
 
@@ -320,70 +355,91 @@ def main(event, context):
             if updated_rows:
                 status = lyr.edit_features(updates=updated_rows)
                 if log_to_file:
-                    log.write("Status of updates to ArcGIS layers: {}\n".format(status))
+                    log.write("Status of updates to {}: {}\n".format(lyr.properties["name"], status))
                 else:
-                    print("Status of updates to ArcGIS layers: {}\n".format(status))
+                    print("Status of updates to {}: {}\n".format(lyr.properties["name"], status))
 
             # related records
             rellyr = FeatureLayer(reltable, gis=gis)
+            relname = rellyr.properties['name']
 
             pkey_fld = lyr.properties.relationships[0]["keyField"]
             fkey_fld = rellyr.properties.relationships[0]["keyField"]
             sql = "{} IS NULL".format(fc_flag, None)
             rel_records = rellyr.query(where=sql)
             updated_rows = []
+
             for record in rel_records:
                 rel_oid = record.attributes[oid_fld]
                 parent = get_parent(lyr, pkey_fld, record, fkey_fld)
 
                 # Upload comment attachments
-                attachmentmgr = AttachmentManager(rellyr)
-                attachments = attachmentmgr.get_list(rel_oid)
-                for attachment in attachments:
-                    response = copy_attachment(attachmentmgr, attachment, rel_oid, parent.attributes[ids[1]])
-                    if response["Status"] is not 0:
-                        if log_to_file:
-                            log.write("Error while copying attachment to Cityworks: {}\n".format(response["ErrorMessages"]))
-                        else:
-                            print("Error while copying attachment to Cityworks: {}\n".format(response["ErrorMessages"]))
+                try:
+                    attachmentmgr = AttachmentManager(rellyr)
+                    attachments = attachmentmgr.get_list(rel_oid)
+                    for attachment in attachments:
+                        response = copy_attachment(attachmentmgr, attachment, rel_oid, parent.attributes[ids[1]])
+                        if response["Status"] is not 0:
+                            try:
+                                error = response["ErrorMessages"]
+                            except KeyError:
+                                error = response["Message"]
+                            msg = "Error copying attachment. Record {} in table {}: {}\n".format(rel_oid,
+                                                                                                 relname,
+                                                                                                 error)
+                            if log_to_file:
+                                log.write(msg)
+                            else:
+                                print(msg)
+                except RuntimeError:
+                    pass  # table doesn't support attachments
 
                 # Process comments
                 response = copy_comments(record, parent, tablefields, ids)
-                if response["Status"] is not 0:
+
+                if 'error' in response:
                     if log_to_file:
-                        log.write("Error while copying comment to Cityworks: {}\n".format(response["ErrorMessages"]))
+                        log.write('Error accessing comment table {}\n'.format(relname))
                     else:
-                        print("Error while copying comment to Cityworks: {}\n".format(response["ErrorMessages"]))
-                else:
-                    record.attributes[fc_flag] = flag_values[1]
+                        print('Error accessing comment table {}\n'.format(relname))
+                    break
+
+                elif response["Status"] is not 0:
+                    try:
+                        error = response["ErrorMessages"]
+                    except KeyError:
+                        error = response["Message"]
+                    msg = "Error copying record {} from {}: {}\n".format(rel_oid, relname, error)
                     if log_to_file:
-                        log.write("Status of updates to Cityworks comments: {}\n".format(response))
+                        log.write(msg)
                     else:
-                        print("Status of updates to Cityworks comments: {}\n".format(response))
-                    updated_rows.append(record)
+                        print(msg)
+                    continue
+                updated_rows.append(record)
 
             # apply edits to updated records
             if updated_rows:
                 status = rellyr.edit_features(updates=updated_rows)
                 if log_to_file:
-                    log.write("Status of updates to ArcGIS comments: {}\n".format(status))
+                    log.write("Status of updates to {} comments: {}\n".format(relname, status))
                 else:
-                    print("Status of updates to ArcGIS comments: {}\n".format(status))
+                    print("Status of updates to {} comments: {}\n".format(relname, status))
 
-            print("Finished processing: {}".format(lyr.properties["name"]))
+            print("Finished processing: {}".format(lyrname))
 
     except Exception as ex:
         print("error: " + str(ex))
 
-    if log_to_file:
-        log.close()
+    finally:
+        if log_to_file:
+            log.close()
 
 
 if __name__ == "__main__":
 
     import sys
 
-    configfile = sys.argv[1]  # r"C:\Users\alli6394\Desktop\arcgis_cw_config.ini"
+    configfile = r'D:\CityWorks\CityworksConnection\Connect_to_Cityworks.JSON'  # sys.argv[1]
 
     with open(configfile) as configreader:
         config = json.load(configreader)
