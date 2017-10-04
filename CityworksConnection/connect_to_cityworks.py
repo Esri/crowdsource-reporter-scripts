@@ -245,7 +245,7 @@ def main(event, context):
             if log_to_file:
                 log.write("Failed to get Cityworks token. {}\n".format(status))
             else:
-                print("Failed to get Cityworks token. {}\n".format(status))
+                print("Failed to get Cityworks token. {}".format(status))
             raise Exception("Failed to get Cityworks token.  {}".format(status))
 
         # get wkid
@@ -255,7 +255,7 @@ def main(event, context):
             if log_to_file:
                 log.write("Spatial reference not defined\n")
             else:
-                print("Spatial reference not defined\n")
+                print("Spatial reference not defined")
             raise Exception("Spatial reference not defined")
 
         # get problem types
@@ -265,7 +265,7 @@ def main(event, context):
             if log_to_file:
                 log.write("Problem types not defined\n")
             else:
-                print("Problem types not defined\n")
+                print("Problem types not defined")
             raise Exception("Problem types not defined")
 
         for layer in layers:
@@ -297,18 +297,18 @@ def main(event, context):
 
                 try:
                     if "WARNING" in reqid:
-                        msg = "Warning generated while copying record from layer {} to Cityworks: {}\n".format(lyrname,
+                        msg = "Warning generated while copying record from layer {} to Cityworks: {}".format(lyrname,
                                                                                                                reqid)
                         if log_to_file:
-                            log.write(msg)
+                            log.write(msg+'\n')
                         else:
                             print(msg)
                         continue
                     elif 'error' in reqid:
-                        msg = "Error generated while copying record from layer {} to Cityworks: {}\n".format(lyrname,
+                        msg = "Error generated while copying record from layer {} to Cityworks: {}".format(lyrname,
                                                                                                              reqid)
                         if log_to_file:
-                            log.write(msg)
+                            log.write(msg+'\n')
                         else:
                             print(msg)
                         continue
@@ -330,11 +330,11 @@ def main(event, context):
                             except KeyError:
                                 error = response["Message"]
 
-                            msg = "Error copying attachment from feature {} in layer {}: {}\n".format(oid,
+                            msg = "Error copying attachment from feature {} in layer {}: {}".format(oid,
                                                                                                       lyrname,
                                                                                                       error)
                             if log_to_file:
-                                log.write(msg)
+                                log.write(msg+'\n')
                             else:
                                 print(msg)
                 except RuntimeError:
@@ -357,7 +357,7 @@ def main(event, context):
                 if log_to_file:
                     log.write("Status of updates to {}: {}\n".format(lyr.properties["name"], status))
                 else:
-                    print("Status of updates to {}: {}\n".format(lyr.properties["name"], status))
+                    print("Status of updates to {}: {}".format(lyr.properties["name"], status))
 
             # related records
             rellyr = FeatureLayer(reltable, gis=gis)
@@ -384,11 +384,11 @@ def main(event, context):
                                 error = response["ErrorMessages"]
                             except KeyError:
                                 error = response["Message"]
-                            msg = "Error copying attachment. Record {} in table {}: {}\n".format(rel_oid,
+                            msg = "Error copying attachment. Record {} in table {}: {}".format(rel_oid,
                                                                                                  relname,
                                                                                                  error)
                             if log_to_file:
-                                log.write(msg)
+                                log.write(msg+'\n')
                             else:
                                 print(msg)
                 except RuntimeError:
@@ -401,7 +401,7 @@ def main(event, context):
                     if log_to_file:
                         log.write('Error accessing comment table {}\n'.format(relname))
                     else:
-                        print('Error accessing comment table {}\n'.format(relname))
+                        print('Error accessing comment table {}'.format(relname))
                     break
 
                 elif response["Status"] is not 0:
@@ -409,9 +409,9 @@ def main(event, context):
                         error = response["ErrorMessages"]
                     except KeyError:
                         error = response["Message"]
-                    msg = "Error copying record {} from {}: {}\n".format(rel_oid, relname, error)
+                    msg = "Error copying record {} from {}: {}".format(rel_oid, relname, error)
                     if log_to_file:
-                        log.write(msg)
+                        log.write(msg+'\n')
                     else:
                         print(msg)
                     continue
@@ -423,7 +423,7 @@ def main(event, context):
                 if log_to_file:
                     log.write("Status of updates to {} comments: {}\n".format(relname, status))
                 else:
-                    print("Status of updates to {} comments: {}\n".format(relname, status))
+                    print("Status of updates to {} comments: {}".format(relname, status))
 
             print("Finished processing: {}".format(lyrname))
 
