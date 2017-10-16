@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 # Name:        geoassignment.py
-# Purpose:
+# Purpose:     to populate attributes on a feature based on attributes of a coincident features
 #
 # Author:      alli6394
 #
@@ -24,6 +24,8 @@
 
 # ------------------------------------------------------------------------------
 
+from datetime import datetime as dt
+from os import path, sys
 from arcgis.gis import GIS
 from arcgis.features import FeatureLayer
 
@@ -77,28 +79,53 @@ services = [
 
 
 def main():
-    with open(path.join(sys.path[0], 'id_log.log'), 'a') as log:
+    # Create log file
+    with open(path.join(sys.path[0], 'attr_log.log'), 'a') as log:
         log.write('\n{}\n'.format(dt.now()))
 
+        # connect to org/portal
         gis = GIS(orgURL, username, password)
 
         for service in services:
             try:
+                # Connect to target layer
                 fl = FeatureLayer(service['url'], gis)
+                fl_fields = [field['name'] for field in fl.properties.fields]
+
+                # get wkid of target layer for spatial queries
                 wkid = fl.properties.extent.spatialReference.wkid
 
                 for reflayer in reversed(service['enrichment layers']):  # reversed so the top llayer is processed last
+                    # Connect to source layer
                     polyfeats = FeatureLayer(reflayer['url'], gis)
 
-                    rows = fl.query(reflayer['query'])
+                    # test that source and target fields exist in source and target layers
+                    poly_fields = [field['name'] for field in polyfeats.properties.fields]
+                    if not reflayer['source field'] in poly_fields:
+                        raise Exception(
+                            'Source field {} not found in layer {}'.format(reflayer['source field'], reflayer['url']))
+
+                    if not reflayer['target field'] in fl_fields:
+                        raise Exception(
+                            'Target field {} not found in layer {}'.format(reflayer['target field'], service['url']))
+
+                    # Query for target features
+                    try:
+                        rows = fl.query(reflayer['query'])
+                    except:
+                        raise Exception('Failed to execute query {}. Please verify the syntax. Layer: {}'.format(reflayer['query'], service['url']))
+
                     for feat in rows:
+                        # Perform spatial query to get attributes of intersecting feature
                         ptgeom = {'geometry': feat.geometry,
                                   'spatialRel': 'esriSpatialRelIntersects',
                                   'geometryType': 'esriGeometryPoint',
                                   'inSR': wkid
                                   }
                         poly = polyfeats.query(geometry_filter=ptgeom)
+
                         try:
+                            # Only first feature is processed
                             source_val = poly.features[0].attributes[reflayer['source field']]
                             feat.attributes[reflayer['target field']] = source_val
                         except IndexError:
