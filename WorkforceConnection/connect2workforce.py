@@ -23,15 +23,14 @@ from os import path, sys
 from arcgis.gis import GIS
 from arcgis.features import FeatureLayer
 
-orgURL = 'http://arcgis4localgov2.maps.arcgis.com'     # URL to ArcGIS Online organization or ArcGIS Portal
-username = 'amuise_lg'   # Username of an account in the org/portal that can access and edit all services listed below
-password = 'pigsfly'   # Password corresponding to the username provided above
+orgURL = ''     # URL to ArcGIS Online organization or ArcGIS Portal
+username = ''   # Username of an account in the org/portal that can access and edit all services listed below
+password = ''   # Password corresponding to the username provided above
 
-services = [{'source url': 'https://services.arcgis.com/b6gLrKHqgkQb393u/arcgis/rest/services/AnimalProblemReports/FeatureServer/0',
-             'target url': 'https://services.arcgis.com/b6gLrKHqgkQb393u/arcgis/rest/services/assignments_314f2ba1d1cb46009aa4b173fdbf57fd/FeatureServer/0',
+services = [{'source url': '',
+             'target url': '',
              'query': '1=1',
-             'fields': {
-                 'DETAILS': 'description'},
+             'fields': {},
              'update field': '',
              'update value': ''
              }]
