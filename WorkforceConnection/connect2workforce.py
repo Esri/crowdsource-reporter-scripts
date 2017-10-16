@@ -27,10 +27,29 @@ orgURL = ''     # URL to ArcGIS Online organization or ArcGIS Portal
 username = ''   # Username of an account in the org/portal that can access and edit all services listed below
 password = ''   # Password corresponding to the username provided above
 
+# Specify the services/ layers to monitor for reports to pass to cityworks
+# [{'source url': 'Reporter layer to monitor for new reports',
+#              'target url': 'Workforce layer where new assignments will be created base on the new reports',
+#              'query': 'SQL query used to identify the new reports that should be copied',
+#              'fields': {
+#                  'Name of Reporter field': 'Name of Workforce field',
+#                  'Another Reporter field to map':'to another workforce field'},
+#              'update field': 'Name of field in Reporter layer tracking which reports have  been copied to Workforce',
+#              'update value': 'Value in update field indicating that a report has already been copied.'
+#              },
+# {'source url': 'Another Reporter layer to monitor for new reports',
+#              'target url': '',
+#              'query': '',
+#              'fields': {},
+#              'update field': '',
+#              'update value': ''
+#              }]
+
 services = [{'source url': '',
              'target url': '',
              'query': '1=1',
-             'fields': {},
+             'fields': {
+                 '': ''},
              'update field': '',
              'update value': ''
              }]
