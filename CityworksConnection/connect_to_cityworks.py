@@ -365,7 +365,7 @@ def main(event, context):
 
             pkey_fld = lyr.properties.relationships[0]["keyField"]
             fkey_fld = rellyr.properties.relationships[0]["keyField"]
-            sql = "{} IS NULL".format(fc_flag, None)
+            sql = "{}='{}'".format(fc_flag, flag_values[0])
             rel_records = rellyr.query(where=sql)
             updated_rows = []
 
@@ -415,7 +415,9 @@ def main(event, context):
                     else:
                         print(msg)
                     continue
-                updated_rows.append(record)
+                else:
+                    record.attributes[fc_flag] = flag_values[1]
+                    updated_rows.append(record)
 
             # apply edits to updated records
             if updated_rows:
@@ -439,7 +441,7 @@ if __name__ == "__main__":
 
     import sys
 
-    configfile = sys.argv[1]
+    configfile = r"D:\CityWorks\CityworksConnection\Connect_to_Cityworks.JSON" #sys.argv[1]
 
     with open(configfile) as configreader:
         config = json.load(configreader)
