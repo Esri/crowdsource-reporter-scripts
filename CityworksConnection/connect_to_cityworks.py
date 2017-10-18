@@ -441,7 +441,7 @@ if __name__ == "__main__":
 
     import sys
 
-    configfile = r"D:\CityWorks\CityworksConnection\Connect_to_Cityworks.JSON" #sys.argv[1]
+    configfile = sys.argv[1]
 
     with open(configfile) as configreader:
         config = json.load(configreader)
