@@ -77,20 +77,13 @@ def main():
                 updates = []
 
                 for row in rows:
-                    # build dictionary of attributes & geometry in schema of target layer
-                    attributes = {}
-                    status = False
-                    priority = False
+                    # Build dictionary of attributes & geometry in schema of target layer
+                    # Default status and priority values can be overwritten if those fields are mapped to reporter layer
+                    attributes = {'status': 0,
+                                  'priority': 0}
+
                     for field in fields:
                         attributes[field[1]] = row.attributes[field[0]]
-                        if field[1] == 'status' and row.attributes[field[0]]:
-                            status = True
-                        elif field [1] == 'priority' and row.attributes[field[0]]:
-                            priority = True
-                    if not status:
-                        attributes['status'] = 0
-                    if not priority:
-                        attributes['priority'] = 0
 
                     new_request = {'attributes': attributes,
                                    'geometry': {'x': row.geometry['x'],
