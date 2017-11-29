@@ -1,14 +1,14 @@
 # ------------------------------------------------------------------------------
-# Name:        geoassignment.py
+# Name:        enrich_reports.py
 # Purpose:     to populate attributes on a feature based on attributes of a coincident features
 #
-# Author:      alli6394
+# Author:      Esri
 #
-# Created:     31/10/2016
+# Created:     11/29/2016
 #
 # Version: Unreleased
 
-# Copyright 2016 Esri
+# Copyright 2017 Esri
 
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.

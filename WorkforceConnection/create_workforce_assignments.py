@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-# Name:        connect2workforce.py
+# Name:        create_workforce_assignments.py
 # Purpose:     generates identifiers for features
 
 # Copyright 2017 Esri
