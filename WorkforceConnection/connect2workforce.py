@@ -27,7 +27,7 @@ orgURL = ''     # URL to ArcGIS Online organization or ArcGIS Portal
 username = ''   # Username of an account in the org/portal that can access and edit all services listed below
 password = ''   # Password corresponding to the username provided above
 
-# Specify the services/ layers to monitor for reports to pass to cityworks
+# Specify the services/ layers to monitor for reports to pass to Workforce
 # [{'source url': 'Reporter layer to monitor for new reports',
 #              'target url': 'Workforce layer where new assignments will be created base on the new reports',
 #              'query': 'SQL query used to identify the new reports that should be copied',
