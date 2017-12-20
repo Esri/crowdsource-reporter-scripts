@@ -112,7 +112,7 @@ def main():
                         for message in email_service['messages']:
 
                             # build sql
-                            sql = "{} != '{}'".format(message['status field'], message['completed value'])
+                            sql = "{} <> '{}'".format(message['status field'], message['completed value'])
                             sql += " AND {}".format(message['query'])
 
                             feature_layer = FeatureLayer(email_service['service url'], target)
