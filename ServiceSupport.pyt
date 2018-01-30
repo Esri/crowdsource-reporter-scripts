@@ -269,7 +269,13 @@ class Identifiers(object):
         layer, delete, seq, field, sequences = parameters
 
         if layer.value and not layer.hasBeenValidated:
-            if 'http' not in layer.valueAsText:
+            try:
+                val = layer.value
+                lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
+            except AttributeError:
+                lyr = layer.valueAsText
+
+            if 'http' not in lyr:
                 layer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
 
         return
@@ -559,7 +565,13 @@ class Moderate(object):
         layer, add_update, delete, modlist, mod_fields, sql, update_field, found_value, modlists, charsubs = parameters
 
         if layer.value and not layer.hasBeenValidated:
-            if 'http' not in layer.valueAsText:
+            try:
+                val = layer.value
+                lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
+            except AttributeError:
+                lyr = layer.valueAsText
+
+            if 'http' not in lyr:
                 layer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
 
         if sql.value and layer.value:# and not sql.hasBeenValidated and not layer.hasBeenValidated:
@@ -832,7 +844,13 @@ class Emails(object):
         layer, delete, email_settings, smtp_server, smtp_username, smtp_password, from_address, reply_address, use_tls, substitutions = parameters
 
         if layer.value and not layer.hasBeenValidated:
-            if 'http' not in layer.valueAsText:
+            try:
+                val = layer.value
+                lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
+            except AttributeError:
+                lyr = layer.valueAsText
+
+            if 'http' not in lyr:
                 layer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
 
         return
@@ -1063,12 +1081,24 @@ class Enrich(object):
 
         layer, polyconfigs, delete, polylayer, source, target, priority = parameters
 
-        if polylayer.value and not polylayer.hasBeenValidated:
-            if 'http' not in polylayer.valueAsText:
+        if polylayer.value:
+            try:
+                val = polylayer.value
+                lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
+            except AttributeError:
+                lyr = layer.valueAsText
+
+            if 'http' not in lyr:
                 polylayer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
 
-        if layer.value and not layer.hasBeenValidated:
-            if 'http' not in layer.valueAsText:
+        if layer.value:
+            try:
+                val = layer.value
+                lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
+            except AttributeError:
+                lyr = layer.valueAsText
+
+            if 'http' not in lyr:
                 layer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
 
         return
