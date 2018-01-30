@@ -266,6 +266,12 @@ class Identifiers(object):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
 
+        layer, delete, seq, field, sequences = parameters
+
+        if layer.value and not layer.hasBeenValidated:
+            if 'http' not in layer.valueAsText:
+                layer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
+
         return
 
     def execute(self, parameters, messages):
@@ -552,6 +558,10 @@ class Moderate(object):
 
         layer, add_update, delete, modlist, mod_fields, sql, update_field, found_value, modlists, charsubs = parameters
 
+        if layer.value and not layer.hasBeenValidated:
+            if 'http' not in layer.valueAsText:
+                layer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
+
         if sql.value and layer.value:# and not sql.hasBeenValidated and not layer.hasBeenValidated:
 
             with open(configuration_file, 'r') as config_params:
@@ -819,6 +829,12 @@ class Emails(object):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
 
+        layer, delete, email_settings, smtp_server, smtp_username, smtp_password, from_address, reply_address, use_tls, substitutions = parameters
+
+        if layer.value and not layer.hasBeenValidated:
+            if 'http' not in layer.valueAsText:
+                layer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
+
         return
 
     def execute(self, parameters, messages):
@@ -1044,6 +1060,17 @@ class Enrich(object):
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
+
+        layer, polyconfigs, delete, polylayer, source, target, priority = parameters
+
+        if polylayer.value and not polylayer.hasBeenValidated:
+            if 'http' not in polylayer.valueAsText:
+                polylayer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
+
+        if layer.value and not layer.hasBeenValidated:
+            if 'http' not in layer.valueAsText:
+                layer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
+
         return
 
     def execute(self, parameters, messages):
