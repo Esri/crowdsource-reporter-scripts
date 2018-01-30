@@ -34,6 +34,9 @@ class General(object):
             datatype='GPString',
             parameterType='Required',
             direction='Input')
+        portal_url.filter.type = 'ValueList'
+        portal_url.filter.list = arcpy.ListPortalURLs()
+
 
         portal_user = arcpy.Parameter(
             displayName='Portal Username',
@@ -73,6 +76,9 @@ class General(object):
                          'id sequences':[]}
             with open(configuration_file, 'w') as config_params:
                 json.dump(newconfig, config_params)
+
+        if not portal_url.value:
+            portal_url.value = arcpy.GetActivePortalURL()
 
         params = [portal_url, portal_user, portal_pass]
 
