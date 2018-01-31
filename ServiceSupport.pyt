@@ -711,6 +711,7 @@ class Emails(object):
                                   ['Field', 'Field to Update'],
                                   ['GPString', 'Sent Value']]
         email_settings.parameterDependencies = [layer.name]
+        email_settings.filters[0].list = ['html']
 
         substitutions = arcpy.Parameter(
             displayName='Email Substitutions',
