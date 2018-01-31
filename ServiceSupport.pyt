@@ -564,7 +564,7 @@ class Moderate(object):
 
         layer, add_update, delete, modlist, mod_fields, sql, update_field, found_value, modlists, charsubs = parameters
 
-        if layer.value and not layer.hasBeenValidated:
+        if layer.value:
             try:
                 val = layer.value
                 lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
@@ -574,23 +574,23 @@ class Moderate(object):
             if 'http' not in lyr:
                 layer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
 
-        if sql.value and layer.value:# and not sql.hasBeenValidated and not layer.hasBeenValidated:
+            elif sql.value:# and not sql.hasBeenValidated and not layer.hasBeenValidated:
 
-            with open(configuration_file, 'r') as config_params:
-                config = json.load(config_params)
+                with open(configuration_file, 'r') as config_params:
+                    config = json.load(config_params)
 
-            try:
-                val = layer.value
-                lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
-            except AttributeError:
-                lyr = layer.valueAsText
+                try:
+                    val = layer.value
+                    lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
+                except AttributeError:
+                    lyr = layer.valueAsText
 
-            gis = GIS(config['organization url'], config['username'], config['password'])
-            fl = FeatureLayer(lyr, gis)
-            validation = fl.validate_sql(sql.valueAsText)
-            if not validation['isValidSQL']:
-                messages = '\n'.join(['{}: {}'.format(msg['errorCode'], msg['description']) for msg in validation['validationErrors']])
-                sql.setErrorMessage(messages)
+                gis = GIS(config['organization url'], config['username'], config['password'])
+                fl = FeatureLayer(lyr, gis)
+                validation = fl.validate_sql(sql.valueAsText)
+                if not validation['isValidSQL']:
+                    messages = '\n'.join(['{}: {}'.format(msg['errorCode'], msg['description']) for msg in validation['validationErrors']])
+                    sql.setErrorMessage(messages)
 
         return
 
