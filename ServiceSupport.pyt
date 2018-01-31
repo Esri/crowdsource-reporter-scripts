@@ -227,6 +227,13 @@ class Identifiers(object):
 
         layer, delete, seq, field, sequences = parameters
 
+        if delete.value or not sequences.values:
+            seq.enabled = False
+            field.enabled = False
+        else:
+            seq.enabled = True
+            field.enabled = True
+
         with open(configuration_file, 'r') as config_params:
             config = json.load(config_params)
 
@@ -250,12 +257,7 @@ class Identifiers(object):
                 seq.value = ""
                 field.value = ""
 
-        if delete.value:
-            seq.enabled = False
-            field.enabled = False
-        else:
-            seq.enabled = True
-            field.enabled = True
+
 
         if sequences.value and not sequences.hasBeenValidated:
             seq.filter.list = [s[0] for s in sequences.values]
@@ -267,6 +269,9 @@ class Identifiers(object):
         parameter.  This method is called after internal validation."""
 
         layer, delete, seq, field, sequences = parameters
+
+        if not sequences.values:
+            layer.setWarningMessage('Define identifier sequences under General Identifier Settings before proceeding.')
 
         if layer.value and not layer.hasBeenValidated:
             try:
@@ -543,7 +548,7 @@ class Moderate(object):
                         found_value.value = ''
                         modlist.value = ''
 
-        if delete.value:
+        if delete.value or not modlists.values:
             modlist.enabled = False
             mod_fields.enabled = False
             sql.enabled = False
@@ -563,6 +568,9 @@ class Moderate(object):
         parameter.  This method is called after internal validation."""
 
         layer, add_update, delete, modlist, mod_fields, sql, update_field, found_value, modlists, charsubs = parameters
+
+        if not modlists.values:
+            layer.setWarningMessage('Define moderation list under General Moderation Settings before proceeding.')
 
         if layer.value:
             try:
