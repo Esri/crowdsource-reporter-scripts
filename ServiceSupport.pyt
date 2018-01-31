@@ -498,22 +498,24 @@ class Moderate(object):
         try:
             val = layer.value
             lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
-        except AttributeError:
+        except (AttributeError, KeyError):
             lyr = layer.valueAsText
 
         if layer.value and not layer.hasBeenValidated:
-            for service in config['services']:
-                if lyr == service['url']:
-                    query_list = [query['list'] for query in service['moderation']]
-                    if query_list:
-                        add_update.enabled = True
-                        query_list.insert(0, 'Add New')
-                        add_update.filter.list = query_list
-                        add_update.value = ''
-                    else:
-                        add_update.enabled = False
-                        add_update.value = 'Add New'
-                    break
+            if 'http' in lyr:
+                for service in config['services']:
+                    if lyr == service['url']:
+                        query_list = [query['list'] for query in service['moderation']]
+                        if query_list:
+                            add_update.enabled = True
+                            query_list.insert(0, 'Add New')
+                            add_update.filter.list = query_list
+                            add_update.value = ''
+                        else:
+                            add_update.enabled = False
+                            add_update.value = 'Add New'
+                        break
+
 
         if add_update.value and not add_update.hasBeenValidated:
             if add_update.valueAsText == 'Add New':
@@ -576,7 +578,7 @@ class Moderate(object):
             try:
                 val = layer.value
                 lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
-            except AttributeError:
+            except (AttributeError, KeyError):
                 lyr = layer.valueAsText
 
             if 'http' not in lyr:
@@ -593,13 +595,15 @@ class Moderate(object):
                 except AttributeError:
                     lyr = layer.valueAsText
 
-                gis = GIS(config['organization url'], config['username'], config['password'])
-                fl = FeatureLayer(lyr, gis)
-                validation = fl.validate_sql(sql.valueAsText)
-                if not validation['isValidSQL']:
-                    messages = '\n'.join(['{}: {}'.format(msg['errorCode'], msg['description']) for msg in validation['validationErrors']])
-                    sql.setErrorMessage(messages)
-
+                if config['organization url'] and config['username'] and config['password']:
+                    gis = GIS(config['organization url'], config['username'], config['password'])
+                    fl = FeatureLayer(lyr, gis)
+                    validation = fl.validate_sql(sql.valueAsText)
+                    if not validation['isValidSQL']:
+                        messages = '\n'.join(['{}: {}'.format(msg['errorCode'], msg['description']) for msg in validation['validationErrors']])
+                        sql.setErrorMessage(messages)
+                else:
+                    sql.setWarningMessage('Cannot validate SQL. Portal/Organization URL and credentials are missing. Run the Define Portal Settings tool to validate this SQL statement.')
         return
 
     def execute(self, parameters, messages):
