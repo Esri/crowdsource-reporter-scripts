@@ -180,14 +180,15 @@ def _get_value(row, fields, sub):
             if field['name'] == sub and 'Date' in field['type']:
                 try:
                     val = dt.fromtimestamp(
-                        row.attributes[sub]).strftime('%d-%m-%Y %H:%M:%S')
+                        row.attributes[sub]).strftime('%c')
                 except OSError:  # timestamp in milliseconds
                     val = dt.fromtimestamp(
-                        row.attributes[sub] / 1000).strftime('%d-%m-%Y %H:%M:%S')
+                        row.attributes[sub] / 1000).strftime('%c')
                 break
         else:
             val = str(val)
     return val
+
 
 def build_email(row, fields, settings):
 
