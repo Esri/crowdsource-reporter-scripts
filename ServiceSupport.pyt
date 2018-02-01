@@ -636,8 +636,9 @@ class Moderate(object):
 
         newconfig = copy.deepcopy(config)
         subs = {}
-        for sub in charsubs.values:
-            subs[sub[0]] = sub[1]
+        if charsubs.values:
+            for sub in charsubs.values:
+                subs[sub[0]] = sub[1]
         newconfig['moderation settings'] = {'lists': [{'filter type': mod[1], 'words': mod[2], 'filter name': mod[0]} for mod in modlists.values],
                                              'substitutions': subs}
 
