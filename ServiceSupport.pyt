@@ -357,7 +357,7 @@ class Moderate(object):
         layer = arcpy.Parameter(
             displayName='Layer',
             name='layer',
-            datatype=['DETable', 'GPFeatureLayer'],
+            datatype=['DETable', 'GPFeatureLayer', "GPTableView"],
             parameterType='Required',
             direction='Input')
 
@@ -497,6 +497,13 @@ class Moderate(object):
 
         try:
             val = layer.value
+            if str(type(val)) == "<class 'geoprocessing value object'>":
+                aprx = arcpy.mp.ArcGISProject("CURRENT")
+                currmap = aprx.activeMap
+                for table in currmap.listTables():
+                    if table.name == layer.valueAsText:
+                        val = table
+                        break
             lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
         except (AttributeError, KeyError):
             lyr = layer.valueAsText
@@ -577,6 +584,13 @@ class Moderate(object):
         if layer.value:
             try:
                 val = layer.value
+                if str(type(val)) == "<class 'geoprocessing value object'>":
+                    aprx = arcpy.mp.ArcGISProject("CURRENT")
+                    currmap = aprx.activeMap
+                    for table in currmap.listTables():
+                        if table.name == layer.valueAsText:
+                            val = table
+                            break
                 lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
             except (AttributeError, KeyError):
                 lyr = layer.valueAsText
@@ -588,12 +602,6 @@ class Moderate(object):
 
                 with open(configuration_file, 'r') as config_params:
                     config = json.load(config_params)
-
-                try:
-                    val = layer.value
-                    lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
-                except AttributeError:
-                    lyr = layer.valueAsText
 
                 if config['organization url'] and config['username'] and config['password']:
                     gis = GIS(config['organization url'], config['username'], config['password'])
@@ -689,7 +697,7 @@ class Emails(object):
         layer = arcpy.Parameter(
             displayName='Layer',
             name='layer',
-            datatype=['DETable', 'GPFeatureLayer'],
+            datatype=['DETable', 'GPFeatureLayer', 'GPTableView'],
             parameterType='Required',
             direction='Input')
 
@@ -819,16 +827,23 @@ class Emails(object):
 
         layer, delete, email_settings, smtp_server, smtp_username, smtp_password, from_address, reply_address, use_tls, substitutions = parameters
 
-        with open(configuration_file, 'r') as config_params:
-            config = json.load(config_params)
-
-        try:
-            val = layer.value
-            lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
-        except AttributeError:
-            lyr = layer.valueAsText
-
         if layer.value and not layer.hasBeenValidated:
+            try:
+                val = layer.value
+                if str(type(val)) == "<class 'geoprocessing value object'>":
+                    aprx = arcpy.mp.ArcGISProject("CURRENT")
+                    currmap = aprx.activeMap
+                    for table in currmap.listTables():
+                        if table.name == layer.valueAsText:
+                            val = table
+                            break
+                lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
+            except (AttributeError, KeyError):
+                lyr = layer.valueAsText
+
+            with open(configuration_file, 'r') as config_params:
+                config = json.load(config_params)
+
             for service in config['services']:
                 if service['url'] == lyr and service['email']:
                     delete.enabled = True
@@ -859,8 +874,15 @@ class Emails(object):
         if layer.value and not layer.hasBeenValidated:
             try:
                 val = layer.value
+                if str(type(val)) == "<class 'geoprocessing value object'>":
+                    aprx = arcpy.mp.ArcGISProject("CURRENT")
+                    currmap = aprx.activeMap
+                    for table in currmap.listTables():
+                        if table.name == layer.valueAsText:
+                            val = table
+                            break
                 lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
-            except AttributeError:
+            except (AttributeError, KeyError):
                 lyr = layer.valueAsText
 
             if 'http' not in lyr:
