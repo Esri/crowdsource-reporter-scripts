@@ -80,6 +80,12 @@ class General(object):
         if not portal_url.value:
             portal_url.value = arcpy.GetActivePortalURL()
 
+        if portal_url.value and not portal_user.value:
+            try:
+                portal_user.value = arcpy.GetPortalDescription(portal_url.valueAsText)['user']['username']
+            except KeyError:
+                pass
+
         params = [portal_url, portal_user, portal_pass]
 
         return params
