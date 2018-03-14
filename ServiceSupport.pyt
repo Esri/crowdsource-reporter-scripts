@@ -1052,12 +1052,18 @@ class Enrich(object):
                     config = json.load(config_params)
                     for service in config['services']:
                         if service['url'] == str(srclyr):
-                            polyconfigs.enabled = "True"
-                            polyconfigs.value = ""
+
                             existing_configs = ["{}: {} ({}-{})".format(info['priority'], info['url'], info['source'], info['target']) for info in service['enrichment']]
-                            existing_configs.insert(0, 'Add New')
-                            polyconfigs.enabled = 'True'
-                            polyconfigs.filter.list= existing_configs
+                            if existing_configs:
+                                polyconfigs.value = ""
+                                polyconfigs.enabled = 'True'
+                                existing_configs.insert(0, 'Add New')
+                                polyconfigs.filter.list = existing_configs
+                            else:
+                                polyconfigs.filter.list = ['Add New']
+                                polyconfigs.value = "Add New"
+                                polyconfigs.enabled = "False"
+                                delete.enabled = "False"
                             break
                     else:
                         polyconfigs.filter.list = ['Add New']
@@ -1128,7 +1134,7 @@ class Enrich(object):
                 val = polylayer.value
                 lyr = val.connectionProperties['connection_info']['url'] + '/' + val.connectionProperties['dataset']
             except AttributeError:
-                lyr = layer.valueAsText
+                lyr = polylayer.valueAsText
 
             if 'http' not in lyr:
                 polylayer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
