@@ -21,7 +21,7 @@ class Toolbox(object):
 class General(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
-        self.label = "Define Portal Settings"
+        self.label = "Define Connection Settings"
         self.description = ""
         self.canRunInBackground = False
 
@@ -29,7 +29,7 @@ class General(object):
         """Define parameter definitions"""
 
         portal_url = arcpy.Parameter(
-            displayName='Portal URL',
+            displayName='ArcGIS Online organization or ArcGIS Enterprise portal URL',
             name='portal_url',
             datatype='GPString',
             parameterType='Required',
@@ -39,14 +39,14 @@ class General(object):
 
 
         portal_user = arcpy.Parameter(
-            displayName='Portal Username',
+            displayName='Username',
             name='portal_user',
             datatype='GPString',
             parameterType='Required',
             direction='Input')
 
         portal_pass = arcpy.Parameter(
-            displayName='Portal Password',
+            displayName='Password',
             name='portal_pass',
             datatype='GPStringHidden',
             parameterType='Required',
@@ -287,7 +287,7 @@ class Identifiers(object):
                 lyr = layer.valueAsText
 
             if 'http' not in lyr:
-                layer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
+                layer.setErrorMessage('Layer must be hosted in an ArcGIS Online organization or ArcGIS Enterprise portal')
 
         return
 
@@ -602,7 +602,7 @@ class Moderate(object):
                 lyr = layer.valueAsText
 
             if 'http' not in lyr:
-                layer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
+                layer.setErrorMessage('Layer must be hosted in an ArcGIS Online organization or ArcGIS Enterprise portal')
 
             elif sql.value:# and not sql.hasBeenValidated and not layer.hasBeenValidated:
 
@@ -617,7 +617,7 @@ class Moderate(object):
                         messages = '\n'.join(['{}: {}'.format(msg['errorCode'], msg['description']) for msg in validation['validationErrors']])
                         sql.setErrorMessage(messages)
                 else:
-                    sql.setWarningMessage('Cannot validate SQL. Portal/Organization URL and credentials are missing. Run the Define Portal Settings tool to validate this SQL statement.')
+                    sql.setWarningMessage('Cannot validate SQL. Portal/Organization URL and credentials are missing. Run the Define Connection Settings tool to validate this SQL statement.')
         return
 
     def execute(self, parameters, messages):
@@ -893,7 +893,7 @@ class Emails(object):
                 lyr = layer.valueAsText
 
             if 'http' not in lyr:
-                layer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
+                layer.setErrorMessage('Layer must be hosted in an ArcGIS Online organization or ArcGIS Enterprise portal')
 
         return
 
@@ -1137,7 +1137,7 @@ class Enrich(object):
                 lyr = polylayer.valueAsText
 
             if 'http' not in lyr:
-                polylayer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
+                polylayer.setErrorMessage('Layer must be hosted in an ArcGIS Online organization or ArcGIS Enterprise portal')
 
         if layer.value:
             try:
@@ -1147,7 +1147,7 @@ class Enrich(object):
                 lyr = layer.valueAsText
 
             if 'http' not in lyr:
-                layer.setErrorMessage('Layer must be hosted in ArcGIS Online or Portal for ArcGIS')
+                layer.setErrorMessage('Layer must be hosted in an ArcGIS Online organization or ArcGIS Enterprise portal')
 
         return
 
