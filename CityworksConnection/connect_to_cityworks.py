@@ -31,6 +31,7 @@ from arcgis.features.managers import AttachmentManager
 import requests
 import json
 from os import path, remove
+from io import BytesIO
 
 cw_token = ""
 baseUrl = ""
@@ -162,19 +163,23 @@ def copy_attachment(attachmentmgr, attachment, oid, requestid):
 
     # download attachment
     attpath = attachmentmgr.download(oid, attachment["id"])
+    if type(attpath) is bytes:
+        file = BytesIO(attpath)
+    elif type(attpath) is str:
+        file = open(attpath, "rb")
 
     # upload attachment
-    file = open(attpath, "rb")
     data = {"RequestId": requestid}
     json_data = json.dumps(data, separators=(",", ":"))
     params = {"token": cw_token, "data": json_data}
-    files = {"file": (path.basename(attpath), file)}
+    files = {"file": (attachment["name"], file)}
     url = "{}/Services/AMS/Attachments/AddRequestAttachment".format(baseUrl)
     response = requests.post(url, files=files, data=params)
 
     # delete downloaded file
     file.close()
-    remove(attpath)
+    if type(attpath) is str:
+        remove(attpath)
 
     return json.loads(response.text)
 
