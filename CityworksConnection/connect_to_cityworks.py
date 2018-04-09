@@ -31,6 +31,9 @@ from arcgis.features.managers import AttachmentManager
 import requests
 import json
 from os import path, remove
+from datetime import datetime
+from dateutil.tz import gettz
+from dateutil.parser import parse
 
 cw_token = ""
 baseUrl = ""
@@ -149,7 +152,7 @@ def submit_to_cw(row, prob_types, fields, oid, typefields):
     response = get_response(url, params)
 
     try:
-        return response["Value"]["RequestId"]
+        return response["Value"]
 
     except TypeError:
         try:
@@ -210,6 +213,7 @@ def main(event, context):
     baseUrl = event["cityworks"]["url"]
     cwUser = event["cityworks"]["username"]
     cwPwd = event["cityworks"]["password"]
+    timezone = event["cityworks"].get("timezone", "")
     isCWOL = event["cityworks"].get("isCWOL", False)
 
     # ArcGIS Online/Portal settings
@@ -224,6 +228,7 @@ def main(event, context):
     flag_values = [event["flag"]["on"], event["flag"]["off"]]
     ids = event["fields"]["ids"]
     probtypes = event["fields"]["type"]
+    opendate = event["fields"].get("opendate", "")
 
     if log_to_file:
         from datetime import datetime as dt
@@ -293,7 +298,9 @@ def main(event, context):
                 oid = row.attributes[oid_fld]
 
                 # Submit feature to the Cityworks database
-                reqid = submit_to_cw(row, prob_types, layerfields, oid, probtypes)
+                request = submit_to_cw(row, prob_types, layerfields, oid, probtypes)
+                reqid = request["RequestId"]
+                initDate = int(parse(request[opendate[0]]).replace(tzinfo=gettz(timezone)).timestamp() * 1000) if opendate else ""
 
                 try:
                     if "WARNING" in reqid:
@@ -344,6 +351,8 @@ def main(event, context):
                 sql = "{}='{}'".format(oid_fld, oid)
                 row_orig = lyr.query(where=sql).features[0]
                 row_orig.attributes[fc_flag] = flag_values[1]
+                if opendate:
+                    row_orig.attributes[opendate[1]] = initDate
                 try:
                     row_orig.attributes[ids[1]] = reqid
                 except TypeError:
