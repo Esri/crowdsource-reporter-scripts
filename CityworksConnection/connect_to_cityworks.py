@@ -168,7 +168,7 @@ def copy_attachment(attachmentmgr, attachment, oid, requestid):
     data = {"RequestId": requestid}
     json_data = json.dumps(data, separators=(",", ":"))
     params = {"token": cw_token, "data": json_data}
-    files = {"file": (path.basename(attpath), file)}
+    files = {"file": (attachment["name"], file)}
     url = "{}/Services/AMS/Attachments/AddRequestAttachment".format(baseUrl)
     response = requests.post(url, files=files, data=params)
 
