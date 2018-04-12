@@ -26,7 +26,6 @@
 
 from arcgis.gis import GIS  # , Group, Layer
 from arcgis.features import FeatureLayer  # , Table
-from arcgis.features.managers import AttachmentManager
 
 import requests
 import json
@@ -139,6 +138,7 @@ def submit_to_cw(row, prob_types, fields, oid, typefields):
     values["X"] = geometry["x"]
     values["Y"] = geometry["y"]
     values[typefields[0]] = prob_sid
+    values["InitiatedByApp"] = "Crowdsource Reporter"
 
     # Convert dict to pretty print json
     json_data = json.dumps(values, separators=(",", ":"))
@@ -319,7 +319,7 @@ def main(event, context):
 
                 # attachments
                 try:
-                    attachmentmgr = AttachmentManager(lyr)
+                    attachmentmgr = lyr.attachments
                     attachments = attachmentmgr.get_list(oid)
 
                     for attachment in attachments:
@@ -375,7 +375,7 @@ def main(event, context):
 
                 # Upload comment attachments
                 try:
-                    attachmentmgr = AttachmentManager(rellyr)
+                    attachmentmgr = rellyr.attachments
                     attachments = attachmentmgr.get_list(rel_oid)
                     for attachment in attachments:
                         response = copy_attachment(attachmentmgr, attachment, rel_oid, parent.attributes[ids[1]])
