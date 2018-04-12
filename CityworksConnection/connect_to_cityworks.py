@@ -26,11 +26,13 @@
 
 from arcgis.gis import GIS  # , Group, Layer
 from arcgis.features import FeatureLayer  # , Table
-from arcgis.features.managers import AttachmentManager
 
 import requests
 import json
 from os import path, remove
+from datetime import datetime
+from dateutil.tz import gettz
+from dateutil.parser import parse
 
 cw_token = ""
 baseUrl = ""
@@ -139,6 +141,7 @@ def submit_to_cw(row, prob_types, fields, oid, typefields):
     values["X"] = geometry["x"]
     values["Y"] = geometry["y"]
     values[typefields[0]] = prob_sid
+    values["InitiatedByApp"] = "Crowdsource Reporter"
 
     # Convert dict to pretty print json
     json_data = json.dumps(values, separators=(",", ":"))
@@ -149,7 +152,7 @@ def submit_to_cw(row, prob_types, fields, oid, typefields):
     response = get_response(url, params)
 
     try:
-        return response["Value"]["RequestId"]
+        return response["Value"]
 
     except TypeError:
         try:
@@ -168,7 +171,7 @@ def copy_attachment(attachmentmgr, attachment, oid, requestid):
     data = {"RequestId": requestid}
     json_data = json.dumps(data, separators=(",", ":"))
     params = {"token": cw_token, "data": json_data}
-    files = {"file": (path.basename(attpath), file)}
+    files = {"file": (attachment["name"], file)}
     url = "{}/Services/AMS/Attachments/AddRequestAttachment".format(baseUrl)
     response = requests.post(url, files=files, data=params)
 
@@ -210,6 +213,7 @@ def main(event, context):
     baseUrl = event["cityworks"]["url"]
     cwUser = event["cityworks"]["username"]
     cwPwd = event["cityworks"]["password"]
+    timezone = event["cityworks"].get("timezone", "")
     isCWOL = event["cityworks"].get("isCWOL", False)
 
     # ArcGIS Online/Portal settings
@@ -224,6 +228,7 @@ def main(event, context):
     flag_values = [event["flag"]["on"], event["flag"]["off"]]
     ids = event["fields"]["ids"]
     probtypes = event["fields"]["type"]
+    opendate = event["fields"].get("opendate", "")
 
     if log_to_file:
         from datetime import datetime as dt
@@ -293,7 +298,9 @@ def main(event, context):
                 oid = row.attributes[oid_fld]
 
                 # Submit feature to the Cityworks database
-                reqid = submit_to_cw(row, prob_types, layerfields, oid, probtypes)
+                request = submit_to_cw(row, prob_types, layerfields, oid, probtypes)
+                reqid = request["RequestId"]
+                initDate = int(parse(request[opendate[0]]).replace(tzinfo=gettz(timezone)).timestamp() * 1000) if opendate else ""
 
                 try:
                     if "WARNING" in reqid:
@@ -319,7 +326,7 @@ def main(event, context):
 
                 # attachments
                 try:
-                    attachmentmgr = AttachmentManager(lyr)
+                    attachmentmgr = lyr.attachments
                     attachments = attachmentmgr.get_list(oid)
 
                     for attachment in attachments:
@@ -344,6 +351,8 @@ def main(event, context):
                 sql = "{}='{}'".format(oid_fld, oid)
                 row_orig = lyr.query(where=sql).features[0]
                 row_orig.attributes[fc_flag] = flag_values[1]
+                if opendate:
+                    row_orig.attributes[opendate[1]] = initDate
                 try:
                     row_orig.attributes[ids[1]] = reqid
                 except TypeError:
@@ -375,7 +384,7 @@ def main(event, context):
 
                 # Upload comment attachments
                 try:
-                    attachmentmgr = AttachmentManager(rellyr)
+                    attachmentmgr = rellyr.attachments
                     attachments = attachmentmgr.get_list(rel_oid)
                     for attachment in attachments:
                         response = copy_attachment(attachmentmgr, attachment, rel_oid, parent.attributes[ids[1]])
@@ -417,6 +426,11 @@ def main(event, context):
                     continue
                 else:
                     record.attributes[fc_flag] = flag_values[1]
+                    try:
+                        record.attributes[ids[1]] = parent.attributes[ids[1]]
+                    except TypeError:
+                        record.attributes[ids[1]] = str(parent.attributes[ids[1]])
+
                     updated_rows.append(record)
 
             # apply edits to updated records
