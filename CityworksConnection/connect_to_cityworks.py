@@ -426,6 +426,11 @@ def main(event, context):
                     continue
                 else:
                     record.attributes[fc_flag] = flag_values[1]
+                    try:
+                        record.attributes[ids[1]] = parent.attributes[ids[1]]
+                    except TypeError:
+                        record.attributes[ids[1]] = str(parent.attributes[ids[1]])
+
                     updated_rows.append(record)
 
             # apply edits to updated records
