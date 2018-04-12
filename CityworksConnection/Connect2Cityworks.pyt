@@ -30,8 +30,10 @@ from arcgis.mapping import WebMap
 from arcgis.features import FeatureLayer, Table
 
 import json
+from pytz import common_timezones
 
-cityworksfields = ['AcctNum', 'Address', 'Answers', 'AptNum', 'CallerAcctNum', 'CallerAddress', 'CallerAptNum', 'CallerCallTime', 'CallerCellPhone', 'CallerCity', 'CallerComments', 'CallerDistrict', 'CallerEmail', 'CallerFax', 'CallerFirstName', 'CallerHomePhone', 'CallerIsFollowUpCall', 'CallerIsOwner', 'CallerLastName', 'CallerMiddleInitial', 'CallerOtherPhone', 'CallerState', 'CallerText1', 'CallerText2', 'CallerText3', 'CallerText4', 'CallerText5', 'CallerTitle', 'CallerType', 'CallerWorkPhone', 'CallerZip', 'Ccx', 'Ccy', 'CellPhone', 'City', 'Comments', 'CustAddType', 'CustAddress', 'CustCallback', 'CustCity', 'CustContact', 'CustDistrict', 'CustState', 'CustZip', 'CustomFieldValues', 'Date1', 'Date2', 'Date3', 'Date4', 'Date5', 'DateTimeCall', 'DateTimeCallback', 'DateTimeContact', 'Details', 'DispatchToSid', 'DispatchToUseDispatchToSid', 'District', 'Email', 'EmployeeSid', 'Fax', 'FirstName', 'HomePhone', 'InitiatedByApp', 'IsFollowUpCall', 'IsResident', 'Landmark', 'LastName', 'Location', 'MapPage', 'MiddleInitial', 'Num1', 'Num2', 'Num3', 'Num4', 'Num5', 'OtherPhone', 'OtherSystemId', 'Priority', 'ProbDetails', 'ProblemSid', 'RequestId', 'Shop', 'State', 'StreetName', 'SubmitToSid', 'SubmitToUseSubmitToSid', 'Text1', 'Text10', 'Text11', 'Text12', 'Text13', 'Text14', 'Text15', 'Text16', 'Text17', 'Text18', 'Text19', 'Text2', 'Text20', 'Text3', 'Text4', 'Text5', 'Text6', 'Text7', 'Text8', 'Text9', 'TileNo', 'Title', 'WorkPhone', 'X', 'Y', 'Zip']
+timezones = common_timezones
+cityworksfields = ['AcctNum', 'Address', 'Answers', 'AptNum', 'CallerAcctNum', 'CallerAddress', 'CallerAptNum', 'CallerCallTime', 'CallerCellPhone', 'CallerCity', 'CallerComments', 'CallerDistrict', 'CallerEmail', 'CallerFax', 'CallerFirstName', 'CallerHomePhone', 'CallerIsFollowUpCall', 'CallerIsOwner', 'CallerLastName', 'CallerMiddleInitial', 'CallerOtherPhone', 'CallerState', 'CallerText1', 'CallerText2', 'CallerText3', 'CallerText4', 'CallerText5', 'CallerTitle', 'CallerType', 'CallerWorkPhone', 'CallerZip', 'Cancel', 'CancelReason', 'CancelledBy', 'CancelledBySid', 'Ccx', 'Ccy', 'CellPhone', 'City', 'ClosedBy', 'ClosedBySid', 'Comments', 'CustAddType', 'CustAddress', 'CustCallback', 'CustCity', 'CustContact', 'CustDistrict', 'CustState', 'CustZip', 'CustomFieldValues', 'Date1', 'Date2', 'Date3', 'Date4', 'Date5', 'DateCancelled', 'DateDispatchOpen', 'DateDispatchTo', 'DateInvtDone', 'DateSubmitTo', 'DateSubmitToOpen', 'DateTimeCall', 'DateTimeCallback', 'DateTimeClosed', 'DateTimeContact', 'DateTimeInit', 'Description', 'Details', 'DispatchOpenBy', 'DispatchOpenBySid', 'DispatchTo', 'DispatchToSid', 'DispatchToUseDispatchToSid', 'District', 'DomainId', 'Effort', 'Email', 'EmployeeSid', 'Excursion', 'Fax', 'FieldInvtDone', 'FirstName', 'HomePhone', 'InitiatedBy', 'InitiatedByApp', 'InitiatedBySid', 'IsClosed', 'IsFollowUpCall', 'IsResident', 'LaborCost', 'Landmark', 'LastName', 'Location', 'LockedByDesktopUser', 'MapPage', 'MiddleInitial', 'Num1', 'Num2', 'Num3', 'Num4', 'Num5', 'OtherPhone', 'OtherSystemCode', 'OtherSystemDesc', 'OtherSystemDesc2', 'OtherSystemId', 'OtherSystemStatus', 'Priority', 'PrjCompleteDate', 'ProbAddType', 'ProbAddress', 'ProbAptNum', 'ProbCity', 'ProbDetails', 'ProbDistrict', 'ProbLandmark', 'ProbLocation', 'ProbState', 'ProbZip', 'ProblemCode', 'ProblemSid', 'ProjectName', 'ProjectSid', 'ReqCategory', 'ReqCustFieldCatId', 'RequestId', 'Resolution', 'SRX', 'SRY', 'Shop', 'State', 'Status', 'StreetName', 'SubmitTo', 'SubmitToEmail', 'SubmitToOpenBy', 'SubmitToOpenBySid', 'SubmitToPager', 'SubmitToPhone', 'SubmitToSid', 'SubmitToUseSubmitToSid', 'Text1', 'Text10', 'Text11', 'Text12', 'Text13', 'Text14', 'Text15', 'Text16', 'Text17', 'Text18', 'Text19', 'Text2', 'Text20', 'Text3', 'Text4', 'Text5', 'Text6', 'Text7', 'Text8', 'Text9', 'TileNo', 'Title', 'WONeeded', 'WorkOrderId', 'WorkPhone', 'X', 'Y', 'Zip']
 
 layer_fields = []
 table_fields = []
@@ -82,6 +84,13 @@ class Tool(object):
         cw_pw = arcpy.Parameter(
             displayName="Cityworks Password",
             name="cityworks_password",
+            datatype="GPString",
+            parameterType="Required",
+            direction="Input"
+        )
+        cw_timezone = arcpy.Parameter(
+            displayName="Timezone of the Cityworks server",
+            name="cw_timezone",
             datatype="GPString",
             parameterType="Required",
             direction="Input"
@@ -167,6 +176,20 @@ class Tool(object):
             parameterType="Required",
             direction="Input"
         )
+        cw_opendate = arcpy.Parameter(
+            displayName="Cityworks Open Date Field",
+            name="cw_opendate",
+            datatype="GPString",
+            parameterType="Required",
+            direction="Input"
+        )
+        report_opendate = arcpy.Parameter(
+            displayName="ArcGIS Open Date Field",
+            name="report_opendate",
+            datatype="GPString",
+            parameterType="Required",
+            direction="Input"
+        )
         fl_flds = arcpy.Parameter(
             displayName="Report Layer Field Map",
             name="feature_fields",
@@ -248,8 +271,17 @@ class Tool(object):
         report_type.filter.type = 'ValueList'
         report_type.filter.list = ['Select layers to see field list']
 
-        params = [portal_url, portal_user, portal_pw, cw_url, cw_user, cw_pw, cw_cwol, group, flayers, cw_id, report_id,
-                  cw_probtype, report_type, flag_fld, flag_on, flag_off, fl_flds, ftables, tb_flds, config_path]
+        cw_opendate.filter.type = 'ValueList'
+        cw_opendate.filter.list = cityworksfields
+
+        report_opendate.filter.type = 'ValueList'
+        report_opendate.filter.list = ['Select layers to see field list']
+
+        cw_timezone.filter.type = 'ValueList'
+        cw_timezone.filter.list = timezones
+
+        params = [portal_url, portal_user, portal_pw, cw_url, cw_user, cw_pw, cw_timezone, cw_cwol, group, flayers, cw_id, report_id,
+                  cw_probtype, report_type, cw_opendate, report_opendate, flag_fld, flag_on, flag_off, fl_flds, ftables, tb_flds, config_path]
 
         return params
 
@@ -262,7 +294,7 @@ class Tool(object):
         validation is performed.  This method is called whenever a parameter
         has been changed."""
 
-        portal_url, portal_user, portal_pw, cw_url, cw_user, cw_pw, cw_cwol, group, flayers, cw_id, report_id, cw_probtype, report_type, flag_fld, flag_on, flag_off, fl_flds, ftables, tb_flds, config_path = parameters
+        portal_url, portal_user, portal_pw, cw_url, cw_user, cw_pw, cw_timezone, cw_cwol, group, flayers, cw_id, report_id, cw_probtype, report_type, cw_opendate, report_opendate, flag_fld, flag_on, flag_off, fl_flds, ftables, tb_flds, config_path = parameters
 
         global agol_user
         global agol_pass
@@ -368,6 +400,12 @@ class Tool(object):
             report_type.value = ''
             report_type.filter.list = []
             report_type.enabled = False
+            cw_opendate.value = ''
+            cw_opendate.filter.list = []
+            cw_opendate.enabled = False
+            report_opendate.value = ''
+            report_opendate.filter.list = []
+            report_opendate.enabled = False
             flag_fld.value = ''
             flag_fld.filter.list = []
             flag_fld.enabled = False
@@ -387,6 +425,8 @@ class Tool(object):
             report_id.enabled = True
             cw_probtype.enabled = True
             report_type.enabled = True
+            cw_opendate.enabled = True
+            report_opendate.enabled = True
             flag_fld.enabled = True
             flag_on.enabled = True
             flag_off.enabled = True
@@ -410,16 +450,21 @@ class Tool(object):
             fl_flds.filters[0].list = layer_fields
             report_id.filter.list = layer_fields
             report_type.filter.list = layer_fields
+            report_opendate.filter.list = layer_fields
 
             if 'RequestId' in cityworksfields:
                 cw_id.value = 'RequestId'
             if 'ProblemSid' in cityworksfields:
                 cw_probtype.value = 'ProblemSid'
+            if 'DateTimeInit' in cityworksfields:
+                cw_opendate.value = 'DateTimeInit'
 
             if 'REPORTID' in layer_fields:
                 report_id.value = 'REPORTID'
             if 'PROBTYPE' in layer_fields:
                 report_type.value = 'PROBTYPE'
+            if 'submitdt' in layer_fields:
+                report_opendate.value = 'submitdt'
 
             if ftables.value:
                 flag_fld.filter.list = list(set(layer_fields) & set(table_fields))
@@ -464,7 +509,7 @@ class Tool(object):
 
     def execute(self, parameters, messages):
         """The source code of the tool."""
-        portal_url, portal_user, portal_pw, cw_url, cw_user, cw_pw, cw_cwol, group, flayers, cw_id, report_id, cw_probtype, report_type, flag_fld, flag_on, flag_off, fl_flds, ftables, tb_flds, config_path = parameters
+        portal_url, portal_user, portal_pw, cw_url, cw_user, cw_pw, cw_timezone, cw_cwol, group, flayers, cw_id, report_id, cw_probtype, report_type, cw_opendate, report_opendate, flag_fld, flag_on, flag_off, fl_flds, ftables, tb_flds, config_path = parameters
 
         layer_urls = [item.split(' ')[-1][1:-2] for item in str(flayers.value).split(';')]
         table_urls = [item.split(' ')[-1][1:-2] for item in str(ftables.value).split(';')]
@@ -475,6 +520,7 @@ class Tool(object):
         cfg['cityworks'] = {'url': cw_url.value,
                             'username': cw_user.value,
                             'password': cw_pw.value,
+                            'timezone': cw_timezone.value,
                             'isCWOL': cw_cwol.value}
         cfg['arcgis'] = {'url': portal_url.value,
                          'username': portal_user.value,
@@ -484,7 +530,8 @@ class Tool(object):
         cfg['fields'] = {'layers': layer_fields,
                          'tables': table_fields,
                          'ids': [cw_id.value, report_id.value],
-                         'type': [cw_probtype.value, report_type.value]}
+                         'type': [cw_probtype.value, report_type.value],
+                         'opendate': [cw_opendate.value, report_opendate.value]}
         cfg['flag'] = {'field': flag_fld.value,
                        'on': flag_on.value,
                        'off': flag_off.value}
