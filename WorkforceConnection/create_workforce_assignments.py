@@ -22,6 +22,7 @@ from datetime import datetime as dt
 from os import path, sys
 from arcgis.gis import GIS
 from arcgis.features import FeatureLayer
+from arcgis.apps import workforce
 
 orgURL = ''     # URL to ArcGIS Online organization or ArcGIS Portal
 username = ''   # Username of an account in the org/portal that can access and edit all services listed below
@@ -60,7 +61,10 @@ def main():
         log.write('\n{}\n'.format(dt.now()))
 
         # connect to org/portal
-        gis = GIS(orgURL, username, password)
+        if username:
+            gis = GIS(orgURL, username, password)
+        else:
+            gis = GIS(orgURL)
 
         for service in services:
             try:
