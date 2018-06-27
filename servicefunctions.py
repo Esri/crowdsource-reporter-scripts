@@ -205,15 +205,16 @@ def build_email(row, fields, settings):
         with open(html) as file:
             email_body = file.read()
             email_subject = settings['subject']
-            for sub in substitutions:
-                if sub[1] in row.fields:
-                    val = _get_value(row, fields, sub[1])
+            if substitutions:
+                for sub in substitutions:
+                    if sub[1] in row.fields:
+                        val = _get_value(row, fields, sub[1])
 
-                    email_body = email_body.replace(sub[0], val)
-                    email_subject = email_subject.replace(sub[0], val)
-                else:
-                    email_body = email_body.replace(sub[0], str(sub[1]))
-                    email_subject = email_subject.replace(sub[0], str(sub[1]))
+                        email_body = email_body.replace(sub[0], val)
+                        email_subject = email_subject.replace(sub[0], val)
+                    else:
+                        email_body = email_body.replace(sub[0], str(sub[1]))
+                        email_subject = email_subject.replace(sub[0], str(sub[1]))
     except:
         _add_message('Failed to read email template {}'.format(html))
 
