@@ -994,6 +994,13 @@ class Enrich(object):
             parameterType='Required',
             direction='Input')
 
+        sql = arcpy.Parameter(
+            displayName='SQL Query',
+            name='sql',
+            datatype='GPString',
+            parameterType='Optional',
+            direction='Input')
+
         source = arcpy.Parameter(
             displayName='Source Field',
             name='source',
@@ -1025,7 +1032,7 @@ class Enrich(object):
             direction='Input')
         delete.enabled = "False"
 
-        params = [layer, polyconfigs, delete, polylayer, source, target, priority]
+        params = [layer, polyconfigs, delete, polylayer, sql, source, target, priority]
 
         return params
 
@@ -1038,7 +1045,7 @@ class Enrich(object):
         validation is performed.  This method is called whenever a parameter
         has been changed."""
 
-        layer, polyconfigs, delete, polylayer, source, target, priority = parameters
+        layer, polyconfigs, delete, polylayer, sql, source, target, priority = parameters
 
         if layer.value and not layer.hasBeenValidated:
             try:
@@ -1052,8 +1059,14 @@ class Enrich(object):
                     config = json.load(config_params)
                     for service in config['services']:
                         if service['url'] == str(srclyr):
+                            existing_configs = []
+                            for info in service['enrichment']:
+                                config_str = "{}: {} ({}-{})".format(info['priority'], info['url'], info['source'], info['target'])
+                                if 'sql' in info.keys():
+                                    if info['sql']:
+                                        config_str += ' {}'.format(info['sql'])
+                                existing_configs.append(config_str)
 
-                            existing_configs = ["{}: {} ({}-{})".format(info['priority'], info['url'], info['source'], info['target']) for info in service['enrichment']]
                             if existing_configs:
                                 polyconfigs.value = ""
                                 polyconfigs.enabled = 'True'
@@ -1100,26 +1113,32 @@ class Enrich(object):
                 delete.enabled = "True"
                 priority.value = int(polyconfigs.valueAsText.split(':')[0])
                 polylayer.value = polyconfigs.valueAsText.split(" ")[1]
-                fields = polyconfigs.valueAsText.split('(')[1].strip(')')
+                fields = polyconfigs.valueAsText.split('(')[1]
+                fields = fields.split(')')[0]
                 target.value = fields.split('-')[-1]
                 source.value = fields.split('-')[0]
+                sql.value = polyconfigs.valueAsText.split(')')[1].strip()
 
         if not delete.hasBeenValidated:
             if delete.value:
                 priority.value = int(polyconfigs.valueAsText.split(':')[0])
                 polylayer.value = polyconfigs.valueAsText.split(" ")[1]
-                fields = polyconfigs.valueAsText.split('(')[1].strip(')')
+                fields = polyconfigs.valueAsText.split('(')[1]
+                fields = fields.split(')')[0]
                 target.value = fields.split('-')[-1]
                 source.value = fields.split('-')[0]
+                sql.value = polyconfigs.valueAsText.split(')')[1].strip()
                 priority.enabled = "False"
                 polylayer.enabled = "False"
                 target.enabled = "False"
                 source.enabled = "False"
+                sql.enabled = "False"
             else:
                 priority.enabled = "True"
                 polylayer.enabled = "True"
                 target.enabled = "True"
                 source.enabled = "True"
+                sql.enabled = "True"
 
         return
 
@@ -1127,7 +1146,7 @@ class Enrich(object):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
 
-        layer, polyconfigs, delete, polylayer, source, target, priority = parameters
+        layer, polyconfigs, delete, polylayer, sql, source, target, priority = parameters
 
         if polylayer.value:
             try:
@@ -1154,7 +1173,7 @@ class Enrich(object):
     def execute(self, parameters, messages):
         """Update the configuration JSON to match the updated properties"""
 
-        layer, polyconfigs, delete, polylayer, source, target, priority = parameters
+        layer, polyconfigs, delete, polylayer, sql, source, target, priority = parameters
 
         try:
             val = layer.value
@@ -1176,18 +1195,25 @@ class Enrich(object):
         for service in newconfig["services"]:
             if service["url"] == srclyr:
                 if polyconfigs.value != 'Add New':
-                    fields = polyconfigs.valueAsText.split('(')[1].strip(')')
+                    fields = polyconfigs.valueAsText.split('(')[1]
+                    fields = fields.split(')')[0]
                     original_vals = {"url": polyconfigs.valueAsText.split(" ")[1],
                                      "source": fields.split('-')[0],
                                      "target": fields.split('-')[-1],
-                                     "priority": int(polyconfigs.valueAsText.split(':')[0])}
+                                     "priority": int(polyconfigs.valueAsText.split(':')[0]),
+                                     'sql': polyconfigs.valueAsText.split(')')[1].strip()}
+                    if not polyconfigs.valueAsText.split(')')[1]:
+                        original_vals['sql'] = None
+                    arcpy.AddMessage(service['enrichment'])
+                    arcpy.AddMessage(original_vals)
                     service['enrichment'].remove(original_vals)
 
                 if not delete.value:
                     service["enrichment"].append({"url": str(tarlyr),
-                                                 "source": source.valueAsText,
-                                                 "target": target.valueAsText,
-                                                 "priority": priority.value})
+                                                  "source": source.valueAsText,
+                                                  "target": target.valueAsText,
+                                                  "priority": priority.value,
+                                                  "sql": sql.valueAsText})
                 else:
                     if service == {"id sequence": '',
                                        "email": [],
@@ -1206,7 +1232,8 @@ class Enrich(object):
                                           "enrichment": [{"url": str(tarlyr),
                                                  "source": source.valueAsText,
                                                  "target": target.valueAsText,
-                                                 "priority": priority.value}]})
+                                                 "priority": priority.value,
+                                                 "sql": sql.valueAsText}]})
 
         try:
             with open(configuration_file, 'w') as config_params:
