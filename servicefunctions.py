@@ -95,10 +95,10 @@ def add_identifiers(lyr, seq, fld):
 def enrich_layer(source, target, settings):
     wkid = target.properties.extent.spatialReference.wkid
 
-    sql = "1=1"
+    sql = "{} IS NULL".format(settings['target'])
     if 'sql' in settings.keys():
-        if settings['sql']:
-            sql = settings['sql']
+        if settings['sql'] and settings['sql'] != "1=1":
+            sql += " AND {}".format(settings['sql'])
 
     # Query for target features
     rows = _get_features(target, sql, return_geometry=True)
@@ -282,7 +282,7 @@ def main(configuration_file):
                 # ENRICH REPORTS
                 if service['enrichment']:
                     # reversed, sorted list of enrichment settings
-                    enrich_settings = sorted(service['enrichment'], key=lambda k: k['priority'], reverse=True)
+                    enrich_settings = sorted(service['enrichment'], key=lambda k: k['priority'])#, reverse=True)
                     for reflayer in enrich_settings:
                         source_features = FeatureLayer(reflayer['url'], gis)
                         enrich_layer(source_features, lyr, reflayer)
