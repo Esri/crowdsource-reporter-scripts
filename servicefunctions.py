@@ -95,8 +95,13 @@ def add_identifiers(lyr, seq, fld):
 def enrich_layer(source, target, settings):
     wkid = target.properties.extent.spatialReference.wkid
 
+    sql = "1=1"
+    if 'sql' in settings.keys():
+        if settings['sql']:
+            sql = settings['sql']
+
     # Query for target features
-    rows = _get_features(target, "1=1", return_geometry=True)
+    rows = _get_features(target, sql, return_geometry=True)
 
     for row in rows:
         # Perform spatial query to get attributes of intersecting feature
