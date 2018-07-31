@@ -378,7 +378,8 @@ class Tool(object):
                     pass  # if no table/popup, no comments layer
 
             layer_urls = list(set(layer_urls))
-            table_urls = list(set(table_urls))
+            if len(table_urls) > 0:
+                table_urls = list(set(table_urls))
             flayers.filter.list = layer_urls
             flayers.value = layer_urls
             ftables.filter.list = table_urls
@@ -514,8 +515,12 @@ class Tool(object):
         layer_urls = [item.split(' ')[-1][1:-2] for item in str(flayers.value).split(';')]
         table_urls = [item.split(' ')[-1][1:-2] for item in str(ftables.value).split(';')]
         layer_fields = [[field[1], field[0]] for field in fl_flds.value]
-        table_fields = [[field[1], field[0]] for field in tb_flds.value]
-
+        table_fields = []
+        if tb_flds.value != None:
+            table_fields = [[field[1], field[0]] for field in tb_flds.value]
+        
+        if table_urls[0] == 'o':
+            table_urls = []
         cfg = {}
         cfg['cityworks'] = {'url': cw_url.value,
                             'username': cw_user.value,
