@@ -89,6 +89,7 @@ ArcGIS Pro 1.4+ Python 3.5+, ArcGIS API for Python 1.2.5+
 ##### Configuration
 1. If not previously installed, use the Python Package Manager in ArcGIS Pro to install the ArcGIS API for Python (package name: arcgis)
 2. In ArcGIS Pro, install the [Solutions Deployment Tool](http://solutions.arcgis.com/shared/help/deployment-tool/), and use it to deploy the Citizen Problem Reporter solution to your portal or organization. If necessary, use this tool to add fields to the layers and to update the domains to match the report types found in Cityworks.
+2a. To configure the Citizen Problem Reporter application manually, see https://solutions.arcgis.com/local-government/help/citizen-problem-reporter/get-started/create-groups/ .
 3. In ArcGIS Pro, add the Connect2Cityworks toolbox to your current project.
 4. Open the tool contained in the toolbox.
 5. Provide the connection information for both Cityworks and ArcGIS Online/ArcGIS Enterprise.
@@ -216,7 +217,7 @@ To execute the script that transfers data between ArcGIS and Cityworks, configur
 3. Click the Action tab and click New.
 4. Set Action to Start a Program.
 5. Browse to the location of your Python 3 installation (for example, <default directory>\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-python3\python.exe).
-6. In the Add arguments text box, copy the name of the script (connect_to_cityworks.py) and the path to the configuration file save from running the tool in ArcGIS Pro.The script name and the configuration file path must be separated by a script, and the configuration file path must be surrounded with double quotes if it contains any spaces.
+6. In the Add arguments text box, copy the name of the script (connect_to_cityworks.py) and the path to the configuration file save from running the tool in ArcGIS Pro (config.json).The script name and the configuration file path must be separated by a space, and the configuration file path must be surrounded with double quotes if it contains any spaces. (for example, Add arguments: "C:\ArcGIS\connect_to_cityworks.py" "C:\ArcGIS\config.json")
 7. In the Start in text box, type the path to the folder containing the scripts and email templates and click OK.
 8. Click the Trigger tab, click New, and set a schedule for your task.
 9. Click OK.
