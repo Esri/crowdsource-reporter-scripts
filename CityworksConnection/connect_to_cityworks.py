@@ -369,14 +369,17 @@ def main(event, context):
                     print("Status of updates to {}: {}".format(lyr.properties["name"], status))
 
             # related records
-            rellyr = FeatureLayer(reltable, gis=gis)
-            relname = rellyr.properties['name']
+            rel_records = []
+            #if comments tables aren't used, script will crash here
+            if len(lyr.properties.relationships) > 0:            
+                rellyr = FeatureLayer(reltable, gis=gis)
+                relname = rellyr.properties['name']
 
-            pkey_fld = lyr.properties.relationships[0]["keyField"]
-            fkey_fld = rellyr.properties.relationships[0]["keyField"]
-            sql = "{}='{}'".format(fc_flag, flag_values[0])
-            rel_records = rellyr.query(where=sql)
-            updated_rows = []
+                pkey_fld = lyr.properties.relationships[0]["keyField"]
+                fkey_fld = rellyr.properties.relationships[0]["keyField"]
+                sql = "{}='{}'".format(fc_flag, flag_values[0])
+                rel_records = rellyr.query(where=sql)
+                updated_rows = []
 
             for record in rel_records:
                 rel_oid = record.attributes[oid_fld]
