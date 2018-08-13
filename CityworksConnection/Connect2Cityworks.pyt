@@ -351,6 +351,7 @@ class Tool(object):
                 webmap = WebMap(mapitem)
 
                 for layer in webmap['operationalLayers']:
+                for layer in webmap.layers:
                     lyr = FeatureLayer(layer['url'], gis)
 
                     if 'Create' in lyr.properties.capabilities:  # Reports layer must have 'create' capabilities
