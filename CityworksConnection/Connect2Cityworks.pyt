@@ -350,7 +350,6 @@ class Tool(object):
             for mapitem in maps:
                 webmap = WebMap(mapitem)
 
-                for layer in webmap['operationalLayers']:
                 for layer in webmap.layers:
                     lyr = FeatureLayer(layer['url'], gis)
 
