@@ -47,7 +47,7 @@ password = ''   # Password corresponding to the username provided above
 #              }]
 
 services = [{'source url': '',
-             'target url': '',
+             'project': '',
              'query': '1=1',
              'fields': {
                  '': ''},
