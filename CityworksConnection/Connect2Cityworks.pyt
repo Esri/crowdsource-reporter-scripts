@@ -350,7 +350,7 @@ class Tool(object):
             for mapitem in maps:
                 webmap = WebMap(mapitem)
 
-                for layer in webmap['operationalLayers']:
+                for layer in webmap.definition['operationalLayers']:
                     lyr = FeatureLayer(layer['url'], gis)
 
                     if 'Create' in lyr.properties.capabilities:  # Reports layer must have 'create' capabilities
@@ -365,7 +365,7 @@ class Tool(object):
                             pass  # if no popup, layer can't be reports layer
 
                 try:
-                    for table in webmap['tables']:
+                    for table in webmap.definition['tables']:
                         tab = Table(table['url'], gis)
 
                         for field in table['popupInfo']['fieldInfos']:
