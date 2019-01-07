@@ -167,17 +167,17 @@ def copy_attachment(attachmentmgr, attachment, oid, requestid):
     attpath = attachmentmgr.download(oid, attachment["id"])
 
     # upload attachment
-    file = open(attpath, "rb")
+    file = open(attpath[0], "rb")
     data = {"RequestId": requestid}
     json_data = json.dumps(data, separators=(",", ":"))
     params = {"token": cw_token, "data": json_data}
-    files = {"file": (attachment["name"], file)}
+    files = {"file": (path.basename(attpath[0]), file)}
     url = "{}/Services/AMS/Attachments/AddRequestAttachment".format(baseUrl)
     response = requests.post(url, files=files, data=params)
 
     # delete downloaded file
     file.close()
-    remove(attpath)
+    remove(attpath[0])
 
     return json.loads(response.text)
 
