@@ -280,14 +280,18 @@ def main(event, context):
 
             # Get related table URL
             reltable = ""
-            for relate in lyr.properties.relationships:
-                url_pieces = layer.split("/")
-                url_pieces[-1] = str(relate["relatedTableId"])
-                table_url = "/".join(url_pieces)
+            try:
+                for relate in lyr.properties.relationships:
+                    url_pieces = layer.split("/")
+                    url_pieces[-1] = str(relate["relatedTableId"])
+                    table_url = "/".join(url_pieces)
 
-                if table_url in tables:
-                    reltable = table_url
-                    break
+                    if table_url in tables:
+                        reltable = table_url
+                        break
+            # if related tables aren't being used
+            except:
+                pass
 
             # query reports
             sql = "{}='{}'".format(fc_flag, flag_values[0])
@@ -371,16 +375,18 @@ def main(event, context):
             # related records
             rel_records = []
             #if comments tables aren't used, script will crash here
-            if len(lyr.properties.relationships) > 0:            
-                rellyr = FeatureLayer(reltable, gis=gis)
-                relname = rellyr.properties['name']
-
-                pkey_fld = lyr.properties.relationships[0]["keyField"]
-                fkey_fld = rellyr.properties.relationships[0]["keyField"]
-                sql = "{}='{}'".format(fc_flag, flag_values[0])
-                rel_records = rellyr.query(where=sql)
-                updated_rows = []
-
+            try:
+                if len(lyr.properties.relationships) > 0:
+                    # related records
+                    rellyr = FeatureLayer(reltable, gis=gis)                
+                    pkey_fld = lyr.properties.relationships[0]["keyField"]
+                    fkey_fld = rellyr.properties.relationships[0]["keyField"]
+                    sql = "{}='{}'".format(fc_flag, flag_values[0])
+                    rel_records = rellyr.query(where=sql)
+            # if related tables aren't being used
+            except:
+                pass
+            updated_rows = []
             for record in rel_records:
                 rel_oid = record.attributes[oid_fld]
                 parent = get_parent(lyr, pkey_fld, record, fkey_fld)
