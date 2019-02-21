@@ -378,7 +378,8 @@ def main(event, context):
             try:
                 if len(lyr.properties.relationships) > 0:
                     # related records
-                    rellyr = FeatureLayer(reltable, gis=gis)                
+                    rellyr = FeatureLayer(reltable, gis=gis)
+                    relname = rellyr.properties["name"]
                     pkey_fld = lyr.properties.relationships[0]["keyField"]
                     fkey_fld = rellyr.properties.relationships[0]["keyField"]
                     sql = "{}='{}'".format(fc_flag, flag_values[0])
@@ -454,6 +455,8 @@ def main(event, context):
 
     except Exception as ex:
         print("error: " + str(ex))
+        if log_to_file:
+            log.write("error: " + str(ex))
 
     finally:
         if log_to_file:
