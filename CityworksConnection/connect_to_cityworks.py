@@ -40,7 +40,7 @@ log_to_file = True
 
 
 def get_response(url, params):
-    response = requests.get(url, params=params)
+    response = requests.post(url, params=params)
     return json.loads(response.text)
 
 
@@ -50,7 +50,7 @@ def get_cw_token(user, pwd, isCWOL):
         data = {"LoginName": user, "Password": pwd}
         json_data = json.dumps(data, separators=(",", ":"))
         params = {"data": json_data}
-        url = "https://login.cityworksonline.com/Services/authentication/CityworksOnlineAuthenticate"
+        url = "https://login.cityworksonline.com/Services/Authentication/CityworksOnlineAuthenticate"
 
         response = get_response(url, params)
 
@@ -62,7 +62,7 @@ def get_cw_token(user, pwd, isCWOL):
     data = {"LoginName": user, "Password": pwd}
     json_data = json.dumps(data, separators=(",", ":"))
     params = {"data": json_data}
-    url = "{}/Services/authentication/authenticate".format(baseUrl)
+    url = "{}/Services/Authentication/Authenticate".format(baseUrl)
 
     response = get_response(url, params)
 
@@ -132,6 +132,10 @@ def submit_to_cw(row, prob_types, fields, oid, typefields):
     except AttributeError:
         msg = "WARNING: Record {} not exported due to missing value in field {}".format(oid, typefields[1])
         return msg
+    
+    except Exception as e:
+        msg = "WARNING: Record {} not exported. Unknown issue getting problem type: {}".format(oid, e.message)
+        return msg
 
     # Build dictionary of values to submit to CW
     values = {}
@@ -159,12 +163,14 @@ def submit_to_cw(row, prob_types, fields, oid, typefields):
             return 'error: {}'.format(response['ErrorMessages'])
         except KeyError:
             return 'error: {}'.format(response['Message'])
+        except Exception:
+            return 'error: {}'.format(response)        
 
 
 def copy_attachment(attachmentmgr, attachment, oid, requestid):
 
     # download attachment
-    attpath = attachmentmgr.download(oid, attachment["id"])
+    attpath = attachmentmgr.download(oid, attachment["id"], path.dirname(path.abspath(__file__)))
 
     # upload attachment
     file = open(attpath[0], "rb")
@@ -207,7 +213,8 @@ def get_parent(lyr, pkey_fld, record, fkey_fld):
 
 
 def main(event, context):
-
+    import sys
+    
     # Cityworks settings
     global baseUrl
     baseUrl = event["cityworks"]["url"]
@@ -290,7 +297,7 @@ def main(event, context):
                         reltable = table_url
                         break
             # if related tables aren't being used
-            except:
+            except AttributeError:
                 pass
 
             # query reports
@@ -385,7 +392,7 @@ def main(event, context):
                     sql = "{}='{}'".format(fc_flag, flag_values[0])
                     rel_records = rellyr.query(where=sql)
             # if related tables aren't being used
-            except:
+            except AttributeError:
                 pass
             updated_rows = []
             for record in rel_records:
@@ -453,13 +460,24 @@ def main(event, context):
 
             print("Finished processing: {}".format(lyrname))
 
-    except Exception as ex:
-        print("error: " + str(ex))
+    except BaseException as ex:        
+        exc_tb = sys.exc_info()[2]
+        exc_typ = sys.exc_info()[0]
+        
+        print('error: {} {}, Line {}'.format(exc_typ, str(ex), exc_tb.tb_lineno))
         if log_to_file:
-            log.write("error: " + str(ex))
+            log.write('error: {} {}, Line {}'.format(exc_typ, str(ex), exc_tb.tb_lineno))
 
-    finally:
+    except:
+        exc_tb = sys.exc_info()[2]
+        exc_typ = sys.exc_info()[0]
+        
+        print('error: {}, Line {}'.format(exc_typ, exc_tb.tb_lineno))
         if log_to_file:
+            log.write('error: {}, Line {}'.format(exc_typ, exc_tb.tb_lineno))        
+    
+    finally:
+        if log_to_file:            
             log.close()
 
 
