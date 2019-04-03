@@ -318,21 +318,21 @@ def main(event, context):
                         
                     except TypeError:
                         if "WARNING" in request:
-                            msg = "Warning generated while copying record from layer {} to Cityworks: {}".format(lyrname, request)
+                            msg = "Warning generated while copying ObjectID:{} from layer {} to Cityworks: {}".format(oid, lyrname, request)
                             if log_to_file:
                                 log.write(msg+'\n')
                             else:
                                 print(msg)
                             continue
                         elif 'error' in request:
-                            msg = "Error generated while copying record from layer {} to Cityworks: {}".format(lyrname, request)
+                            msg = "Error generated while copying ObjectID:{} from layer {} to Cityworks: {}".format(oid, lyrname, request)
                             if log_to_file:
                                 log.write(msg+'\n')
                             else:
                                 print(msg)
                             continue
                         else:
-                            msg = "Uncaught response generated while copying record from layer {} to Cityworks: {}".format(lyrname, request)
+                            msg = "Uncaught response generated while copying ObjectID:{} from layer {} to Cityworks: {}".format(oid, lyrname, request)
                             if log_to_file:
                                 log.write(msg+'\n')
                             else:
