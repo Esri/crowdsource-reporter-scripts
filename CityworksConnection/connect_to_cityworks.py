@@ -306,79 +306,88 @@ def main(event, context):
             updated_rows = []
 
             for row in rows.features:
-                oid = row.attributes[oid_fld]
-
-                # Submit feature to the Cityworks database
-                request = submit_to_cw(row, prob_types, layerfields, oid, probtypes)
-                reqid = request["RequestId"]
-                initDate = int(parse(request[opendate[0]]).replace(tzinfo=gettz(timezone)).timestamp() * 1000) if opendate else ""
-
                 try:
-                    if "WARNING" in reqid:
-                        msg = "Warning generated while copying record from layer {} to Cityworks: {}".format(lyrname,
-                                                                                                               reqid)
-                        if log_to_file:
-                            log.write(msg+'\n')
-                        else:
-                            print(msg)
-                        continue
-                    elif 'error' in reqid:
-                        msg = "Error generated while copying record from layer {} to Cityworks: {}".format(lyrname,
-                                                                                                             reqid)
-                        if log_to_file:
-                            log.write(msg+'\n')
-                        else:
-                            print(msg)
-                        continue
-                    else:
-                        pass  # requestID is str = ok
-                except TypeError:
-                    pass  # requestID is a number = ok
-
-                # attachments
-                try:
-                    attachmentmgr = lyr.attachments
-                    attachments = attachmentmgr.get_list(oid)
-
-                    for attachment in attachments:
-                        response = copy_attachment(attachmentmgr, attachment, oid, reqid)
-                        if response["Status"] is not 0:
-                            try:
-                                error = response["ErrorMessages"]
-                            except KeyError:
-                                error = response["Message"]
-
-                            msg = "Error copying attachment from feature {} in layer {}: {}".format(oid,
-                                                                                                      lyrname,
-                                                                                                      error)
+                    oid = row.attributes[oid_fld]
+    
+                    # Submit feature to the Cityworks database
+                    request = submit_to_cw(row, prob_types, layerfields, oid, probtypes)
+                    
+                    try:
+                        reqid = request["RequestId"]
+                        initDate = int(parse(request[opendate[0]]).replace(tzinfo=gettz(timezone)).timestamp() * 1000) if opendate else ""                    
+                        
+                    except TypeError:
+                        if "WARNING" in request:
+                            msg = "Warning generated while copying record from layer {} to Cityworks: {}".format(lyrname, request)
                             if log_to_file:
                                 log.write(msg+'\n')
                             else:
                                 print(msg)
-                except RuntimeError:
-                    pass  # feature layer doesn't support attachments
-
-                # update the record in the service so that it evaluates falsely against sql
-                sql = "{}='{}'".format(oid_fld, oid)
-                row_orig = lyr.query(where=sql).features[0]
-                row_orig.attributes[fc_flag] = flag_values[1]
-                if opendate:
-                    row_orig.attributes[opendate[1]] = initDate
-                try:
-                    row_orig.attributes[ids[1]] = reqid
-                except TypeError:
-                    row_orig.attributes[ids[1]] = str(reqid)
-
-                updated_rows.append(row_orig)
-
-            # apply edits to updated features
-            if updated_rows:
-                status = lyr.edit_features(updates=updated_rows)
-                if log_to_file:
-                    log.write("Status of updates to {}: {}\n".format(lyr.properties["name"], status))
-                else:
-                    print("Status of updates to {}: {}".format(lyr.properties["name"], status))
-
+                            continue
+                        elif 'error' in request:
+                            msg = "Error generated while copying record from layer {} to Cityworks: {}".format(lyrname, request)
+                            if log_to_file:
+                                log.write(msg+'\n')
+                            else:
+                                print(msg)
+                            continue
+                        else:
+                            msg = "Uncaught response generated while copying record from layer {} to Cityworks: {}".format(lyrname, request)
+                            if log_to_file:
+                                log.write(msg+'\n')
+                            else:
+                                print(msg)
+                            continue                   
+    
+                    # update the record in the service so that it evaluates falsely against sql
+                    sql = "{}='{}'".format(oid_fld, oid)
+                    row_orig = lyr.query(where=sql).features[0]
+                    row_orig.attributes[fc_flag] = flag_values[1]
+                    if opendate:
+                        row_orig.attributes[opendate[1]] = initDate
+                    try:
+                        row_orig.attributes[ids[1]] = reqid
+                    except TypeError:
+                        row_orig.attributes[ids[1]] = str(reqid)
+    
+                    # apply edits to updated row
+                    status = lyr.edit_features(updates=[row_orig])
+                    if log_to_file:
+                        log.write("Status of updates to {}, ObjectID:{} {}\n".format(lyr.properties["name"], oid, status))
+                    else:
+                        print("Status of updates to {}, ObjectID:{} {}".format(lyr.properties["name"], oid, status))         
+                    
+                    # attachments
+                    try:
+                        attachmentmgr = lyr.attachments
+                        attachments = attachmentmgr.get_list(oid)
+    
+                        for attachment in attachments:
+                            response = copy_attachment(attachmentmgr, attachment, oid, reqid)
+                            if response["Status"] is not 0:
+                                try:
+                                    error = response["ErrorMessages"]
+                                except KeyError:
+                                    error = response["Message"]
+    
+                                msg = "Error copying attachment from feature {} in layer {}: {}".format(oid, lyrname, error)
+                                if log_to_file:
+                                    log.write(msg+'\n')
+                                else:
+                                    print(msg)
+                    except RuntimeError:
+                        pass  # feature layer doesn't support attachments
+                
+                # any other error in row execution, move on to next row
+                except Exception as e:
+                    if log_to_file:
+                        log.write(str(e)+'\n')
+                    else:
+                        print(str(e))
+                    continue
+                # end of row execution
+            # end of features execution
+            
             # related records
             rel_records = []
             #if comments tables aren't used, script will crash here
@@ -396,68 +405,72 @@ def main(event, context):
                 pass
             updated_rows = []
             for record in rel_records:
-                rel_oid = record.attributes[oid_fld]
-                parent = get_parent(lyr, pkey_fld, record, fkey_fld)
-
-                # Upload comment attachments
                 try:
-                    attachmentmgr = rellyr.attachments
-                    attachments = attachmentmgr.get_list(rel_oid)
-                    for attachment in attachments:
-                        response = copy_attachment(attachmentmgr, attachment, rel_oid, parent.attributes[ids[1]])
-                        if response["Status"] is not 0:
-                            try:
-                                error = response["ErrorMessages"]
-                            except KeyError:
-                                error = response["Message"]
-                            msg = "Error copying attachment. Record {} in table {}: {}".format(rel_oid,
-                                                                                                 relname,
-                                                                                                 error)
-                            if log_to_file:
-                                log.write(msg+'\n')
-                            else:
-                                print(msg)
-                except RuntimeError:
-                    pass  # table doesn't support attachments
-
-                # Process comments
-                response = copy_comments(record, parent, tablefields, ids)
-
-                if 'error' in response:
-                    if log_to_file:
-                        log.write('Error accessing comment table {}\n'.format(relname))
+                    rel_oid = record.attributes[oid_fld]
+                    parent = get_parent(lyr, pkey_fld, record, fkey_fld)
+    
+                    # Process comments
+                    response = copy_comments(record, parent, tablefields, ids)
+    
+                    if 'error' in response:
+                        if log_to_file:
+                            log.write('Error accessing comment table {}\n'.format(relname))
+                        else:
+                            print('Error accessing comment table {}'.format(relname))
+                        break
+    
+                    elif response["Status"] is not 0:
+                        try:
+                            error = response["ErrorMessages"]
+                        except KeyError:
+                            error = response["Message"]
+                        msg = "Error copying record {} from {}: {}".format(rel_oid, relname, error)
+                        if log_to_file:
+                            log.write(msg+'\n')
+                        else:
+                            print(msg)
+                        continue
                     else:
-                        print('Error accessing comment table {}'.format(relname))
-                    break
-
-                elif response["Status"] is not 0:
+                        record.attributes[fc_flag] = flag_values[1]
+                        try:
+                            record.attributes[ids[1]] = parent.attributes[ids[1]]
+                        except TypeError:
+                            record.attributes[ids[1]] = str(parent.attributes[ids[1]])
+                        
+                        # apply edits to updated record
+                        status = rellyr.edit_features(updates=[record])
+                        if log_to_file:
+                            log.write("Status of updates to {}, ObjectID:{} comments: {}\n".format(relname, rel_oid, status))
+                        else:
+                            print("Status of updates to {}, ObjectID:{} comments: {}".format(relname, rel_oid, status))                    
+                    
+                    # Upload comment attachments
                     try:
-                        error = response["ErrorMessages"]
-                    except KeyError:
-                        error = response["Message"]
-                    msg = "Error copying record {} from {}: {}".format(rel_oid, relname, error)
+                        attachmentmgr = rellyr.attachments
+                        attachments = attachmentmgr.get_list(rel_oid)
+                        for attachment in attachments:
+                            response = copy_attachment(attachmentmgr, attachment, rel_oid, parent.attributes[ids[1]])
+                            if response["Status"] is not 0:
+                                try:
+                                    error = response["ErrorMessages"]
+                                except KeyError:
+                                    error = response["Message"]
+                                msg = "Error copying attachment. Record {} in table {}: {}".format(rel_oid, relname, error)
+                                if log_to_file:
+                                    log.write(msg+'\n')
+                                else:
+                                    print(msg)
+                    except RuntimeError:
+                        pass  # table doesn't support attachments
+                
+                # any other uncaught Exception in related record export, move on to next row
+                except Exception as e:
                     if log_to_file:
-                        log.write(msg+'\n')
+                        log.write(str(e)+'\n')
                     else:
-                        print(msg)
-                    continue
-                else:
-                    record.attributes[fc_flag] = flag_values[1]
-                    try:
-                        record.attributes[ids[1]] = parent.attributes[ids[1]]
-                    except TypeError:
-                        record.attributes[ids[1]] = str(parent.attributes[ids[1]])
-
-                    updated_rows.append(record)
-
-            # apply edits to updated records
-            if updated_rows:
-                status = rellyr.edit_features(updates=updated_rows)
-                if log_to_file:
-                    log.write("Status of updates to {} comments: {}\n".format(relname, status))
-                else:
-                    print("Status of updates to {} comments: {}".format(relname, status))
-
+                        print(str(e))
+                    continue                    
+            
             print("Finished processing: {}".format(lyrname))
 
     except BaseException as ex:        
