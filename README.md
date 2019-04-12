@@ -77,7 +77,7 @@ For more information on configuring this script, see the documentation: [Workfor
 [Download a supported version of the Workforce Connection script here][]
 
 
-## Cityworks Connection (Sample)
+## Cityworks Connection (Sample - Beta)
 
 A script to pass data from editable ArcGIS feature layers to Cityworks tables, including related records and attachments. The script also passes the Cityworks Request ID and open date back to the ArcGIS feature. 
 
