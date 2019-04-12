@@ -77,14 +77,14 @@ For more information on configuring this script, see the documentation: [Workfor
 [Download a supported version of the Workforce Connection script here][]
 
 
-## Cityworks Connection (Sample - Beta)
+## Cityworks Connection (Developed in Partnership with Cityworks)
 
 A script to pass data from editable ArcGIS feature layers to Cityworks tables, including related records and attachments. The script also passes the Cityworks Request ID and open date back to the ArcGIS feature. 
 
 The script assumes that the data is being collected using the Crowdsource Reporter application. For input, it requires the group containing the maps that are visible in the Crowdsource Reporter app.
 
 Note: This integration requires specific versions of the Cityworks platform and integration with existing service request content.
-If you would like to integrate Cityworks / Citizen Problem Reporter then please reach out to your Cityworks account representative, who can get you connected with the technical resources inside of Cityworks to do the integration. 
+If you would like to integrate Citizen Problem Reporter with your Cityworks implementation, please reach out to your Cityworks account representative.  They wil be able to help you with specific system requirements and the steps required to complete the integration. 
 
 ##### Requirements
 ArcGIS Pro 1.4+ Python 3.5+, ArcGIS API for Python 1.2.5+
