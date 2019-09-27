@@ -170,7 +170,7 @@ def submit_to_cw(row, prob_types, fields, oid, typefields):
 def copy_attachment(attachmentmgr, attachment, oid, requestid):
 
     # download attachment
-    attpath = attachmentmgr.download(oid, attachment["id"], path.dirname(path.abspath(__file__)))
+    attpath = attachmentmgr.download(oid, attachment["id"])
 
     # upload attachment
     file = open(attpath[0], "rb")
