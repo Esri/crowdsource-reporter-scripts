@@ -50,7 +50,7 @@ def get_cw_token(user, pwd, isCWOL):
         data = {"LoginName": user, "Password": pwd}
         json_data = json.dumps(data, separators=(",", ":"))
         params = {"data": json_data}
-        url = "https://login.cityworksonline.com/Services/Authentication/CityworksOnlineAuthenticate"
+        url = "https://login.cityworksonline.com/Services/General/Authentication/CityworksOnlineAuthenticate"
 
         response = get_response(url, params)
 
@@ -62,7 +62,7 @@ def get_cw_token(user, pwd, isCWOL):
     data = {"LoginName": user, "Password": pwd}
     json_data = json.dumps(data, separators=(",", ":"))
     params = {"data": json_data}
-    url = "{}/Services/Authentication/Authenticate".format(baseUrl)
+    url = "{}/Services/General/Authentication/Authenticate".format(baseUrl)
 
     response = get_response(url, params)
 
