@@ -41,7 +41,10 @@ log_to_file = True
 
 def get_response(url, params):
     response = requests.post(url, params=params)
-    return json.loads(response.text)
+    try:
+        return json.loads(response.text)
+    except:
+        return {'ErrorMessages':'HTML returned, check {}/Errors.axd'.format(baseUrl)}
 
 
 def get_cw_token(user, pwd, isCWOL):
@@ -153,8 +156,8 @@ def submit_to_cw(row, prob_types, fields, oid, typefields):
 
     # Submit report to Cityworks.
     url = "{}/Services/AMS/ServiceRequest/Create".format(baseUrl)
+    
     response = get_response(url, params)
-
     try:
         return response["Value"]
 
@@ -403,6 +406,8 @@ def main(event, context):
             # if related tables aren't being used
             except AttributeError:
                 pass
+            except KeyError:
+                relname = "Comments"
             updated_rows = []
             for record in rel_records:
                 try:
