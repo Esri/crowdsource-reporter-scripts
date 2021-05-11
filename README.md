@@ -1,44 +1,44 @@
 # crowdsource-reporter-scripts
 This repository contains a series of tools that can be used to extend the functionality of editable feature layers published to an ArcGIS Online organization or an ArcGIS portal. The scripts can be scheduled using an application such as Windows Tasks to scan the feature layers for new content.
 
-[New to Github? Get started here.]: http://htmlpreview.github.com/?https://github.com/Esri/esri.github.com/blob/master/help/esri-getting-to-know-github.html
+[New to Github? Get started here.]: https://guides.github.com/activities/hello-world/
 [ArcGIS for Local Government maps and apps]: http://solutions.arcgis.com/local-government
 [Local Government GitHub repositories]: http://esri.github.io/#Local-Government
 [guidelines for contributing]: https://github.com/esri/contributing
 [LICENSE]: https://github.com/ArcGIS/crowdsource-reporter-scripts/blob/master/LICENSE.txt
-[Automated Moderation]: http://solutions.arcgis.com/local-government/help/crowdsource-reporter/get-started/automated-moderation/
-[Generate IDs]: http://solutions.arcgis.com/local-government/help/crowdsource-reporter/get-started/generate-ids/
-[Email Notifications]: http://solutions.arcgis.com/local-government/help/crowdsource-reporter/get-started/email-notification/
-[Download a supported version of the Automated Moderation script here]: http://links.esri.com/localgovernment/download/AutomatedModerationScript/
-[Download a supported version of the Email Notification script here]: http://links.esri.com/localgovernment/download/EmailNotificationScript/
-[Download a supported version of the Generate IDs script here]: http://links.esri.com/localgovernment/download/GenerateIDScript/
+[Generate Report IDs]: http://solutions.arcgis.com/local-government/help/crowdsource-reporter/get-started/generate-ids/
+[Moderate Reports]: http://solutions.arcgis.com/local-government/help/crowdsource-reporter/get-started/automated-moderation/
+[Send Email Notifications]: http://solutions.arcgis.com/local-government/help/crowdsource-reporter/get-started/email-notification/
+[Enrich Reports]: https://solutions.arcgis.com/local-government/help/crowdsource-reporter/get-started/enrich-reports/
+[Download a supported version of the Service Functions script here]: http://links.esri.com/download/servicefunctions
+[Connect to ArcGIS Workforce]: https://solutions.arcgis.com/local-government/help/crowdsource-reporter/get-started/create-workforce-assignments/
+[Download a supported version of the Connect to ArcGIS Workforce script here]: http://links.esri.com/localgovernment/download/CreateWorkforceAssignments
 
-
-
-## Automated Moderation
-
-A script to filter features based on lists of explicit and sensitive words. The script updates a flag field when a word on these lists is detected so that the feature no longer meets the requirements of a filter on a layer in a web map. 
-
-##### Requirements
-Python 2.7, ArcPy
-
-##### Configuration
-For more information on configuring this script, see the documentation: [Automated Moderation][]
-
-[Download a supported version of the Automated Moderation script here][]
-
-## Generate IDs
+## Generate Report IDs
 
 A script to generate identifiers for features using a defined sequence and a value that increments on a defined interval.
 
 ##### Requirements
 Python 2.7, ArcPy
+
 ##### Configuration
-For more information on configuring this script, see the documentation: [Generate IDs][]
+For more information on configuring this script, see the documentation: [Generate Report IDs][]
 
-[Download a supported version of the Generate IDs script here][]
+[Download a supported version of the Service Functions script here][], which contains the Generate Report IDs script.
 
-## Email Notifications
+## Moderate Reports
+
+A script to filter features based on lists of explicit and sensitive words. The script updates a flag field when a word on these lists is detected so that the feature no longer meets the requirements of a filter on a layer in a web map.
+
+##### Requirements
+Python 2.7, ArcPy
+
+##### Configuration
+For more information on configuring this script, see the documentation: [Moderate Reports][]
+
+[Download a supported version of the Service Functions script here][], which contains the Moderate Reports script.
+
+## Send Email Notifications
 
 Send emails to specific email addresses, or to addresses in fields in the data. Multiple messages can be configured for each layer based on attribute values. The script updates a flag field to indicate that each message has been sent.
 
@@ -46,12 +46,11 @@ Send emails to specific email addresses, or to addresses in fields in the data. 
 Python 3, ArcGIS API for Python
 
 ##### Configuration
-For more information on configuring this script, see the documentation: [Email Notifications][]
+For more information on configuring this script, see the documentation: [Send Email Notifications][]
 
-[Download a supported version of the Email Notification script here][]
+[Download a supported version of the Service Functions script here][], which contains the Send Email Notifications script.
 
-
-## Calculate Nearby Values
+## Enrich Reports
 
 Calculate feature attributes based on the attributes of co-incident features.
 
@@ -59,32 +58,31 @@ Calculate feature attributes based on the attributes of co-incident features.
 Python 3, ArcGIS API for Python
 
 ##### Configuration
-For more information on configuring this script, see the documentation: [Calculate Nearby Values][]
+For more information on configuring this script, see the documentation: [Enrich Reports][]
 
-[Download a supported version of the Calculate Nearby Values script here][]
+[Download a supported version of the Service Functions script here][], which contains the Enrich Reports script.
 
+## Connect to ArcGIS Workforce
 
-## Workforce Connection
-
-Create workforce assignments from incomming Crowdsource REporter, GeoForm, and Survey 123 reports.
+Create workforce assignments from incoming Crowdsource Reporter, GeoForm, and Survey 123 reports.
 
 ##### Requirements
 Python 3, ArcGIS API for Python
 
 ##### Configuration
-For more information on configuring this script, see the documentation: [Workforce Connection][]
+For more information on configuring this script, see the documentation: [Connect to ArcGIS Workforce][]
 
-[Download a supported version of the Workforce Connection script here][]
+[Download a supported version of the Connect to ArcGIS Workforce script here][]
 
 
 ## Cityworks Connection (Developed in Partnership with Cityworks)
 
-A script to pass data from editable ArcGIS feature layers to Cityworks tables, including related records and attachments. The script also passes the Cityworks Request ID and open date back to the ArcGIS feature. 
+A script to pass data from editable ArcGIS feature layers to Cityworks tables, including related records and attachments. The script also passes the Cityworks Request ID and open date back to the ArcGIS feature.
 
 The script assumes that the data is being collected using the Crowdsource Reporter application. For input, it requires the group containing the maps that are visible in the Crowdsource Reporter app.
 
 Note: This integration requires specific versions of the Cityworks platform and integration with existing service request content.
-If you would like to integrate Citizen Problem Reporter with your Cityworks implementation, please reach out to your Cityworks account representative.  They wil be able to help you with specific system requirements and the steps required to complete the integration. 
+If you would like to integrate Citizen Problem Reporter with your Cityworks implementation, please reach out to your Cityworks account representative.  They will be able to help you with specific system requirements and the steps required to complete the integration.
 
 ##### Requirements
 ArcGIS Pro 1.4+ Python 3.5+, ArcGIS API for Python 1.2.5+
