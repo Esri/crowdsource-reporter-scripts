@@ -93,35 +93,39 @@ def add_identifiers(lyr, seq, fld):
 
 
 def enrich_layer(source, target, settings):
-    wkid = target.properties.extent.spatialReference.wkid
+    wkid = source.properties.extent.spatialReference.wkid
 
     sql = "{} IS NULL".format(settings['target'])
     if 'sql' in settings.keys():
         if settings['sql'] and settings['sql'] != "1=1":
             sql += " AND {}".format(settings['sql'])
 
-    # Query for target features
     rows = _get_features(target, sql, return_geometry=True)
 
-    for row in rows:
-        # Perform spatial query to get attributes of intersecting feature
-        ptgeom = {'geometry': row.geometry,
-                  'spatialRel': 'esriSpatialRelIntersects',
-                  'geometryType': 'esriGeometryPoint',
-                  'inSR': wkid
-                  }
-        sourcefeat = source.query(geometry_filter=ptgeom)
+    # Query for source polygons
+    source_polygons = source.query(out_fields=settings['source'])
 
-        try:
-            # Only first feature is processed
-            source_val = sourcefeat.features[0].attributes[settings['source']]
-            row.attributes[settings['target']] = source_val
-        except IndexError:
-            continue  # no intersecting feature found
+    for polygon in source_polygons:
+        polyGeom = {
+            'geometry': polygon.geometry,
+            'spatialRel': 'esriSpatialRelIntersects',
+            'geometryType': 'esriGeometryPolygon',
+            'inSR': wkid
+        }
 
-    if rows:
-        results = target.edit_features(updates=rows)
-        _report_failures(results)
+        #Query find points that intersect the source polygon and that honor the sql query from settings
+        intersectingPoints = target.query(geometry_filter=polyGeom, where=sql, out_fields=settings['target'])
+
+        source_val = polygon.get_value(settings['source'])
+
+        #Set all of the intersecting points values
+        for feature in intersectingPoints:
+            feature.set_value(settings['target'],source_val)
+
+        #Send edits if they exist
+        if intersectingPoints:
+            results = target.edit_features(updates=intersectingPoints)
+            _report_failures(results)
 
     return
 

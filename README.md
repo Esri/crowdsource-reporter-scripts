@@ -85,7 +85,7 @@ Note: This integration requires specific versions of the Cityworks platform and 
 If you would like to integrate Citizen Problem Reporter with your Cityworks implementation, please reach out to your Cityworks account representative.  They will be able to help you with specific system requirements and the steps required to complete the integration.
 
 ##### Requirements
-ArcGIS Pro 1.4+ Python 3.5+, ArcGIS API for Python 1.2.5+
+ArcGIS Pro 2.2+ Python 3.5+, ArcGIS API for Python 1.4.1+
 
 ##### Configuration
 1. If not previously installed, use the Python Package Manager in ArcGIS Pro to install the ArcGIS API for Python (package name: arcgis)
