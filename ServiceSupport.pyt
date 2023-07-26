@@ -442,7 +442,7 @@ class Moderate(object):
         charsubs = arcpy.Parameter(
             displayName='Character Substitutions',
             name='charsubs',
-            datatype='GPString',
+            datatype='GPValueTable',
             parameterType='Optional',
             direction='Input')
         charsubs.columns = [['GPString', 'Letter'],
