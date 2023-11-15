@@ -57,7 +57,7 @@ def get_cw_token(user, pwd, isCWOL):
 
         response = get_response(url, params)
 
-        if response["Status"] is not 0:
+        if response["Status"] != 0:
             return "error: {}: {}".format(response["Status"],
                                           response["Message"])
         else:
@@ -69,7 +69,7 @@ def get_cw_token(user, pwd, isCWOL):
 
     response = get_response(url, params)
 
-    if response["Status"] is not 0:
+    if response["Status"] != 0:
         return "error: {}: {}".format(response["Status"],
                                       response["Message"])
     else:
@@ -367,7 +367,7 @@ def main(event, context):
     
                         for attachment in attachments:
                             response = copy_attachment(attachmentmgr, attachment, oid, reqid)
-                            if response["Status"] is not 0:
+                            if response["Status"] != 0:
                                 try:
                                     error = response["ErrorMessages"]
                                 except KeyError:
@@ -424,7 +424,7 @@ def main(event, context):
                             print('Error accessing comment table {}'.format(relname))
                         break
     
-                    elif response["Status"] is not 0:
+                    elif response["Status"] != 0:
                         try:
                             error = response["ErrorMessages"]
                         except KeyError:
@@ -455,7 +455,7 @@ def main(event, context):
                         attachments = attachmentmgr.get_list(rel_oid)
                         for attachment in attachments:
                             response = copy_attachment(attachmentmgr, attachment, rel_oid, parent.attributes[ids[1]])
-                            if response["Status"] is not 0:
+                            if response["Status"] != 0:
                                 try:
                                     error = response["ErrorMessages"]
                                 except KeyError:
